@@ -1,0 +1,7 @@
+config/dev-secret.txt
+config/local-config.edn
+config/prod-secret.txt
+/.clj-kondo/
+/.cpcache/
+/.lsp/
+/.nrepl-port

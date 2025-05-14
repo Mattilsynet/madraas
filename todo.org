@@ -1,0 +1,4 @@
+* Mattilsynets ADResse As A Service
+** TODO Implementere watch for KV i clj-nats
+https://javadoc.io/static/io.nats/jnats/2.21.1/io/nats/client/KeyValue.html#watch-java.util.List-io.nats.client.api.KeyValueWatcher-io.nats.client.api.KeyValueWatchOption...-
+**

@@ -1,0 +1,5 @@
+^{:config/secrets {:secret/prod [:config/env "MADRAAS_CONFIG_SECRET"]}}
+{;; NATS
+ :nats.core/server-url "tls://connect.nats.mattilsynet.io:4222"
+ :nats.core/connection-name "madraas-prod"
+ :nats.core/credentials ""}

@@ -1,0 +1,11 @@
+;; Denne filen er ikke sjekka inn, og brukes for å tilpasse configen til din
+;; lokale maskin.
+
+^{:config/secrets {:secret/dev [:config/file "./config/dev-secret.txt"]}
+  :dev-config/import ["./config/dev-defaults.edn"]}
+
+;; Egen inline config, ved behov
+
+{;; :nats.core/server-url "tls://connect.nats.mattilsynet.io:4222"
+ ;; :nats.core/credentials-file "matnyttig.credentials"
+ }

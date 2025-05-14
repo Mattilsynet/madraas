@@ -1,0 +1,37 @@
+;; Den eneste formen for "migrering" som finnes her er at strømmer som ikke
+;; allerede finnes opprettes. Utover dette blir de ikke migrert på noe vis. Skal
+;; de endres må det manuelt arbeid til. Vurder å lage en ny strøm heller enn å
+;; endre på en gammel.
+[{:nats.kv/bucket-name "adresser"
+  :nats.kv/description "Adresser i Matrikkelen"
+  :nats.kv/replicas 3
+  :nats.kv/max-history-per-key 10}
+
+ {:nats.kv/bucket-name "fylker"
+  :nats.kv/description "Fylker i Norge"
+  :nats.kv/replicas 3
+  :nats.kv/max-history-per-key 10}
+
+ {:nats.kv/bucket-name "kommuner"
+  :nats.kv/description "Kommuner i Norge"
+  :nats.kv/replicas 3
+  :nats.kv/max-history-per-key 10}
+
+ {:nats.kv/bucket-name "postnummere"
+  :nats.kv/description "Postnummere i Norge med bruksområder"
+  :nats.kv/replicas 3
+  :nats.kv/max-history-per-key 10}
+
+ {:nats.stream/name "adresse-endringer"
+  :nats.stream/subjects #{"endringer.adresse.>"}
+  :nats.stream/description "Adresse-endringer i Matrikkelen"
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false
+  :nats.stream/max-age #time/duration "PT8766H" ;; 1 år (365.25 dager - tar ikke høyde for skuddsekund)
+  }
+
+ ]

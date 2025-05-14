@@ -1,0 +1,4 @@
+^{:config/secrets {:secret/dev [:config/file "./config/dev-secret.txt"]}}
+{:nats.core/server-url "nats://localhost:4222"
+ :nats/stream-overrides {:nats.stream/replicas 1
+                         :nats.kv/replicas 1}}
