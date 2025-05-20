@@ -1,4 +1,10 @@
 ^{:config/secrets {:secret/dev [:config/file "./config/dev-secret.txt"]}}
 {:nats.core/server-url "nats://localhost:4222"
  :nats/stream-overrides {:nats.stream/replicas 1
-                         :nats.kv/replicas 1}}
+                         :nats.kv/replicas 1}
+
+ ;; Matrikkelen
+ :matrikkel/url "https://matrikkel.no/matrikkelapi/wsapi/v1"
+ :matrikkel/username "mattilsynet_matrikkel"
+ :matrikkel/password [:secret/dev "TlBZDnpHzf1y9Udv1zRGs4kZBVuSNJxBi0tkyhofkf+eJjGeMMpYqhiW+VszAu57M7YlUkBWLsgOz5MEB+Zb7ylgWEKz4dq0ONGEhXiIVZ+Dstq4nExDBe5O5yxWA6Jdx1o="]
+ }
