@@ -8,7 +8,12 @@
             [open-telemetry.tracing :as tracing])
   (:import (java.time Duration)))
 
-(defn init-connection [config resources]
+(defn select-keys-by-ns [m ns]
+  (->> (keys m)
+       (filter (comp #{ns} namespace))
+       (select-keys m)))
+
+(defn init-connection [{:nats/keys [stream-overrides] :as config} resources]
   (let [conn (nats/connect config)
         existing (stream/get-stream-names conn)]
     (doseq [nats-resource resources]
@@ -17,11 +22,13 @@
           (:nats.stream/name nats-resource)
           (when-not (existing (:nats.stream/name nats-resource))
             (tracing/with-span ["create-stream" (otel/flatten-data nats-resource {:prefix "_"})]
-              (stream/create-stream conn nats-resource)))
+              (stream/create-stream conn
+                (merge nats-resource (select-keys-by-ns stream-overrides "nats.stream")))))
 
           (:nats.kv/bucket-name nats-resource)
           (tracing/with-span ["upsert-kv-bucket" (otel/flatten-data nats-resource {:prefix "_"})]
-            (kv/create-bucket conn nats-resource))
+            (kv/create-bucket conn
+              (merge nats-resource (select-keys-by-ns stream-overrides "nats.kv"))))
 
           :else
           (throw (ex-info "Unknown NATS resource" nats-resource)))
@@ -30,7 +37,6 @@
                           {:resource nats-resource
                            :nats-server (:nats.core/server-url config)}
                           e)))))
-
     conn))
 
 (defn init-config [{:keys [path env-var overrides extra-config]}]
