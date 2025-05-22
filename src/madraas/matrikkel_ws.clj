@@ -21,3 +21,15 @@
         (map ->xml hiccupish)
 
         :else hiccupish))
+
+(defn matrikkel-context [service-ns koordinatsystem]
+  [(keyword (if (keyword service-ns)
+              (name service-ns)
+              (str service-ns))
+            "matrikkelContext")
+   [::dom/locale "no_NO_B"]
+   [::dom/brukOriginaleKoordinater "false"]
+   [::dom/koordinatsystemKodeId
+    [::dom/value (koordinatsystem->matrikkel-id koordinatsystem)]]
+   [::dom/systemVersion "4.4"]
+   [::dom/klientIdentifikasjon "madraas"]])
