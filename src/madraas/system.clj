@@ -1,9 +1,12 @@
 (ns madraas.system
-  (:require [nats.core :as nats]
+  (:require [clojure.java.io :as io]
+            [confair.config :as config]
+            [nats.core :as nats]
             [nats.kv :as kv]
             [nats.stream :as stream]
             [open-telemetry.core :as otel]
-            [open-telemetry.tracing :as tracing]))
+            [open-telemetry.tracing :as tracing])
+  (:import (java.time Duration)))
 
 (defn init-connection [config resources]
   (let [conn (nats/connect config)
@@ -29,3 +32,20 @@
                           e)))))
 
     conn))
+
+(defn init-config [{:keys [path env-var overrides extra-config]}]
+  (let [config (cond
+                 (and path (.exists (io/file path)))
+                 (config/from-file path overrides)
+
+                 (and env-var (System/getenv env-var))
+                 (config/from-base64-env env-var overrides)
+
+                 :else
+                 (throw (ex-info "No config found"
+                                 {:path path :env-var env-var})))]
+    (-> config
+        (cond->
+          (string? (:nats.stream/request-timeout (:nats/jet-stream-options config)))
+          (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))
+        (into extra-config))))
