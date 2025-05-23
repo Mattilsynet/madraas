@@ -4,15 +4,22 @@
             [madraas.matrikkel-ws :as matrikkel-ws]))
 
 (xml/alias-uri 'example "http://example.com/test"
-               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain")
+               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning")
 
 (deftest matrikkel-context-test
   (testing "Matrikkel context"
-    (is (= [::example/matrikkelContext
+    (is (= [::ned/matrikkelContext
             [::dom/locale "no_NO_B"]
-            [::dom/brukOriginaleKoordinater "false"]
+            [::dom/brukOriginaleKoordinater "true"]
             [::dom/koordinatsystemKodeId
-             [::dom/value "11"]]
+             [::dom/value "10"]]
             [::dom/systemVersion "4.4"]
             [::dom/klientIdentifikasjon "madraas"]]
-           (matrikkel-ws/matrikkel-context (get (ns-aliases *ns*) 'example) "25833")))))
+           (matrikkel-ws/matrikkel-context 'ned)))
+
+    (is (not= (first (matrikkel-ws/matrikkel-context 'dom))
+              (first (matrikkel-ws/matrikkel-context 'ned))))
+
+    (is (= (rest (matrikkel-ws/matrikkel-context 'dom))
+           (rest (matrikkel-ws/matrikkel-context 'ned))))))

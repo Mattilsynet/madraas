@@ -9,14 +9,14 @@
                'store "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store"
 )
 
-(defn matrikkel-context [service-ns koordinatsystem]
-  [(keyword (if (keyword service-ns)
-              (name service-ns)
-              (str service-ns))
-            "matrikkelContext")
+(defn xml-ns [alias]
+  (str (get (ns-aliases 'madraas.matrikkel-ws) (symbol alias) alias)))
+
+(defn matrikkel-context [service-ns-alias]
+  [(keyword (xml-ns service-ns-alias) "matrikkelContext")
    [::dom/locale "no_NO_B"]
-   [::dom/brukOriginaleKoordinater "false"]
+   [::dom/brukOriginaleKoordinater "true"]
    [::dom/koordinatsystemKodeId
-    [::dom/value (koordinatsystem->matrikkel-id koordinatsystem)]]
+    [::dom/value "10"]]
    [::dom/systemVersion "4.4"]
    [::dom/klientIdentifikasjon "madraas"]])
