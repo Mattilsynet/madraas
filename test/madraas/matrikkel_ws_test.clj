@@ -19,13 +19,16 @@
              [::dom/value "10"]]
             [::dom/systemVersion "4.4"]
             [::dom/klientIdentifikasjon "madraas"]]
-           (matrikkel-ws/matrikkel-context 'ned)))
+           (matrikkel-ws/matrikkel-context 'ned))))
 
-    (is (not= (first (matrikkel-ws/matrikkel-context 'dom))
-              (first (matrikkel-ws/matrikkel-context 'ned))))
+  (testing "Matrikkel context med forskjellig domene har forskjell kun i rot-elementet"
+    (let [dom-matrikkel-context (matrikkel-ws/matrikkel-context 'dom)
+          ned-matrikkel-context (matrikkel-ws/matrikkel-context 'ned)]
+      (is (not= (first dom-matrikkel-context)
+                (first ned-matrikkel-context)))
 
-    (is (= (rest (matrikkel-ws/matrikkel-context 'dom))
-           (rest (matrikkel-ws/matrikkel-context 'ned))))))
+      (is (= (rest dom-matrikkel-context)
+             (rest ned-matrikkel-context))))))
 
 (deftest find-ids-etter-id-request-test
   (is (= [::soapenv/SoapEnvelope
@@ -41,7 +44,6 @@
             [::ned/maksAntall 1000]
             (matrikkel-ws/matrikkel-context 'ned)]]]
          (matrikkel-ws/find-ids-etter-id-request "Adresse" 1337))))
-
 
 (deftest get-objects-request-test
   (is (= [::soapenv/SoapEnvelope
