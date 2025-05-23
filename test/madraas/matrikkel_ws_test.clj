@@ -6,7 +6,8 @@
 (xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
                'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
                'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
-               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning")
+               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
+               'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (deftest matrikkel-context-test
   (testing "Matrikkel context"
@@ -32,11 +33,29 @@
           [::soapenv/Header]
           [::soapenv/Body
            [::ned/findIdsEtterId
-            [::ned/matrikkelBubbleId
-             #::xsi{:type "adresse:AdresseId"}
+            [::ned/matrikkelBubbleId {::xsi/type "adresse:AdresseId"}
              [::dom/value 1337]]
             [::ned/domainklasse "Adresse"]
             [::ned/filter]
             [::ned/maksAntall 1000]
             (matrikkel-ws/matrikkel-context 'ned)]]]
          (matrikkel-ws/find-ids-etter-id-request "Adresse" 1337))))
+
+
+(deftest get-objects-request-test
+  (is (= [::soapenv/SoapEnvelope
+          {"xmlns:adresse"
+           "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+           "xmlns:kommune"
+           "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"}
+          [::soapenv/Header]
+          [::soapenv/Body
+           [::store/getObjects
+            [::store/ids
+             [::dom/item {::xsi/type "adresse:AdresseId"}
+              [::dom/value 1337]]
+             [::dom/item {::xsi/type "kommune:KommuneId"}
+              [::dom/value 301]]]
+            (matrikkel-ws/matrikkel-context 'store)]]]
+         (matrikkel-ws/get-objects-request [{:domene-klasse "Adresse" :id 1337}
+                                            {:domene-klasse "Kommune" :id 301}]))))

@@ -71,3 +71,14 @@
     [::ned/maksAntall 1000]
     (matrikkel-context 'ned)]))
 
+(defn get-objects-request [ids]
+  (soap-envelope
+   ;; Kan eventuelt hente ut bare de aliasene vi trenger, men det er ikke så mange uansett
+   (into {} (vals domene-klasse->ns-aliases))
+   [::store/getObjects
+    (into [::store/ids]
+          (for [{:keys [id domene-klasse]} ids]
+            [::dom/item {::xsi/type (domene-klasse->id-type domene-klasse)}
+             [::dom/value id]]))
+    (matrikkel-context 'store)]))
+
