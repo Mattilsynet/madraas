@@ -3,7 +3,8 @@
             [clojure.test :refer [deftest is testing]]
             [madraas.matrikkel-ws :as matrikkel-ws]))
 
-(xml/alias-uri 'example "http://example.com/test"
+(xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
+               'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
                'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
                'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning")
 
@@ -23,3 +24,19 @@
 
     (is (= (rest (matrikkel-ws/matrikkel-context 'dom))
            (rest (matrikkel-ws/matrikkel-context 'ned))))))
+
+(deftest find-ids-etter-id-request-test
+  (is (= [::soapenv/SoapEnvelope
+          {"xmlns:adresse"
+           "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
+          [::soapenv/Header]
+          [::soapenv/Body
+           [::ned/findIdsEtterId
+            [::ned/matrikkelBubbleId
+             #::xsi{:type "adresse:AdresseId"}
+             [::dom/value 1337]]
+            [::ned/domainklasse "Adresse"]
+            [::ned/filter]
+            [::ned/maksAntall 1000]
+            (matrikkel-ws/matrikkel-context 'ned)]]]
+         (matrikkel-ws/find-ids-etter-id-request "Adresse" 1337))))
