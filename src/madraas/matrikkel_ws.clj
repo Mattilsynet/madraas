@@ -47,7 +47,7 @@
    For at flytting av XMLNS-prefiksene til rotnivå skal fungere,
    må nøkkelen angis som en streng, ikke som en en keyword."
   [attrs request]
-  [::soapenv/SoapEnvelope
+  [::soapenv/Envelope
    attrs
    [::soapenv/Header]
    [::soapenv/Body request]])

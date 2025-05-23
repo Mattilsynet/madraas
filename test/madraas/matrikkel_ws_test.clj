@@ -31,7 +31,7 @@
              (rest ned-matrikkel-context))))))
 
 (deftest find-ids-etter-id-request-test
-  (is (= [::soapenv/SoapEnvelope
+  (is (= [::soapenv/Envelope
           {"xmlns:adresse"
            "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
           [::soapenv/Header]
@@ -46,7 +46,7 @@
          (matrikkel-ws/find-ids-etter-id-request "Adresse" 1337))))
 
 (deftest get-objects-request-test
-  (is (= [::soapenv/SoapEnvelope
+  (is (= [::soapenv/Envelope
           {"xmlns:adresse"
            "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
            "xmlns:kommune"
@@ -64,7 +64,7 @@
                                             {:domene-klasse "Kommune" :id 301}]))))
 
 (deftest find-endringer-request-test
-  (is (= [::soapenv/SoapEnvelope
+  (is (= [::soapenv/Envelope
           {"xmlns:adresse"
            "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
           [::soapenv/Header]
