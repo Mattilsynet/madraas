@@ -3,10 +3,11 @@
    [clojure.data.xml :as xml]
    [clojure.string :as str]))
 
-(xml/alias-uri 'xsi "http://www.w3.org/2001/XMLSchema-instance"
+(xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
                'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
-               'dom "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
-               'ned "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
+               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
+               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
                'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (def domene-ns
@@ -82,3 +83,29 @@
              [::dom/value id]]))
     (matrikkel-context 'store)]))
 
+(defn find-endringer-request [domene-klasse fra-id]
+  (soap-envelope
+   (domene-klasse->ns-aliases domene-klasse)
+   [::endring/findEndringer
+    [::endring/id
+     [::dom/value (or fra-id "0")]]
+    [::endring/domainKlasse domene-klasse]
+    [::endring/filter]
+    [::endring/returnerBobler "Aldri"]
+    [::endring/maksAntall 10000]
+    (matrikkel-context 'endring)]))
+
+(comment
+  (xml/emit-str (xml/aggregate-xmlns (xml/sexp-as-element (find-ids-etter-id-request 15 "Adresse"))))
+  (str/split (xml/indent-str
+              (xml/aggregate-xmlns
+               (xml/sexp-as-element (get-objects-request [{:id 15 :domene-klasse "Adresse"}
+                                                          {:id 16 :domene-klasse "Krets"}]))))
+             #"\R")
+  (str/split (xml/indent-str
+              (xml/aggregate-xmlns
+               (xml/sexp-as-element [::dom/A
+                                     [::ned/B]
+                                     [::ned/C]])))
+             #"\R")
+)

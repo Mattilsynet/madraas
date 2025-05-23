@@ -6,6 +6,7 @@
 (xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
                'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
                'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
                'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
                'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
@@ -59,3 +60,19 @@
             (matrikkel-ws/matrikkel-context 'store)]]]
          (matrikkel-ws/get-objects-request [{:domene-klasse "Adresse" :id 1337}
                                             {:domene-klasse "Kommune" :id 301}]))))
+
+(deftest find-endringer-request-test
+  (is (= [::soapenv/SoapEnvelope
+          {"xmlns:adresse"
+           "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
+          [::soapenv/Header]
+          [::soapenv/Body
+           [::endring/findEndringer
+            [::endring/id
+             [::dom/value 1138]]
+            [::endring/domainKlasse "Veg"]
+            [::endring/filter]
+            [::endring/returnerBobler "Aldri"]
+            [::endring/maksAntall 10000]
+            (matrikkel-ws/matrikkel-context 'endring)]]]
+         (matrikkel-ws/find-endringer-request "Veg" 1138))))
