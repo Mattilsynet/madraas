@@ -1,7 +1,9 @@
 (ns madraas.matrikkel-ws
   (:require
    [clojure.data.xml :as xml]
-   [clojure.string :as str]))
+   [clojure.set :as set]
+   [clojure.string :as str]
+   [madraas.xml-helpers :as xh]))
 
 (xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
                'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
@@ -37,6 +39,16 @@
    (fn [domene klasse]
      (str domene ":" klasse "Id"))))
 
+(def id-type->domene-klasse
+  (set/map-invert domene-klasse->id-type))
+
+(def uri->ns-alias
+  (->> (->domene-klasse-map
+        (fn [domene _]
+          {(str "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/" domene)
+           domene}))
+       vals
+       (into {})))
 (defn xml-ns [alias]
   (str (get (ns-aliases 'madraas.matrikkel-ws) (symbol alias) alias)))
 
@@ -108,4 +120,12 @@
                                      [::ned/B]
                                      [::ned/C]])))
              #"\R")
+
+  (id-type->domene-klasse
+   (xh/xsi-type (-> [::dom/item {"xmlns:ns1" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+                                 ::xsi/type "ns1:VegId"}]
+                    xml/sexp-as-element
+                    xml/emit-str
+                    xml/parse-str)
+                uri->ns-alias))
 )
