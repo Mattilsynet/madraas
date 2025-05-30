@@ -1,5 +1,6 @@
 (ns madraas.matrikkel-ws
   (:require
+   [clj-http.client :as http]
    [clojure.data.xml :as xml]
    [clojure.set :as set]
    [clojure.string :as str]
@@ -106,6 +107,21 @@
     [::endring/returnerBobler "Aldri"]
     [::endring/maksAntall 10000]
     (matrikkel-context 'endring)]))
+
+(defn be-om-såpe [config tjeneste forespørsel]
+  (let [{:keys [status body]}
+        (http/post
+         (str (:matrikkel/url config) "/" tjeneste)
+         {:basic-auth [(:matrikkel/username config)
+                       (:matrikkel/password config)]
+          :body (-> forespørsel
+                    xml/sexp-as-element
+                    xml/aggregate-xmlns
+                    xml/emit-str)
+          :throw-exceptions false
+          :as :stream})]
+    {:status status
+     :body (xml/parse body)}))
 
 (comment
   (xml/emit-str (xml/aggregate-xmlns (xml/sexp-as-element (find-ids-etter-id-request 15 "Adresse"))))
