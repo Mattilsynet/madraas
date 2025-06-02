@@ -29,3 +29,12 @@
          uri (-> (xml/element-nss node) :p->u (get ns-alias ns-alias))
          local-prefix (get uri->ns-alias uri uri)]
      (str local-prefix ":" type))))
+
+(defn select-tags [xml tags]
+  (let [tag-set (into #{} tags)]
+    (reduce (fn [res element]
+              (cond-> res
+                (tag-set (:tag element))
+                (assoc (:tag element) (children element))))
+            {}
+            xml)))

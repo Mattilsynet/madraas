@@ -37,10 +37,24 @@
             "NedlastningServiceWS"
             (matrikkel-ws/find-ids-etter-id-request "Veg" 53))))
 
-  (xml/element-nss veger)
+  (def ids
+    (->>(xh/get-in-xml veger [::soapenv/Envelope ::soapenv/Body ::ned/findIdsEtterIdResponse ::ned/return])
+        (map (juxt #(-> (xh/xsi-type % matrikkel-ws/uri->ns-alias)
+                        matrikkel-ws/id-type->domene-klasse)
+                   #(xh/get-in-xml % [::dom/item ::dom/value])))
+        (map (fn [[type id]] {:id id :domene-klasse type}))))
 
-  (map (juxt #(-> % (xh/xsi-type matrikkel-ws/uri->ns-alias) matrikkel-ws/id-type->domene-klasse)
-             #(xh/get-in-xml % [::dom/item ::dom/value]))
-       (xh/get-in-xml veger [::soapenv/Envelope ::soapenv/Body ::ned/findIdsEtterIdResponse ::ned/return]))
+  (def nedlastede-veger
+    (:body
+     (matrikkel-ws/be-om-såpe
+      config
+      "StoreServiceWS"
+      (matrikkel-ws/get-objects-request
+       ids))))
+
+  (->> (xh/get-in-xml nedlastede-veger
+                     [::soapenv/Envelope ::soapenv/Body ::store/getObjectsResponse
+                      ::store/return ::dom/item])
+       (map #(xh/select-tags % [::adr/adressenavn ::adr/kortAdressenavn ::adr/stedsnummer])))
 
   )

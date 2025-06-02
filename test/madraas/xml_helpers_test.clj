@@ -52,3 +52,16 @@
                xml/emit-str
                xml/parse-str
                (xh/xsi-type {"http://example.com/" "my-alias"}))))))
+
+(deftest get-in-xml-test
+  (testing "XML select tags"
+    (is (= {::example/eldstemann "Test 123"
+            ::example/attpåklatten "Test 789"}
+           (-> (xml/sexp-as-element
+                [::example/barn
+                 [::example/eldstemann "Test 123"]
+                 [::example/dritten-i-midten "Test 456"]
+                 [::example/attpåklatten "Test 789"]])
+               (xh/get-in-xml [::example/barn])
+               (xh/select-tags [::example/eldstemann
+                                ::example/attpåklatten]))))))
