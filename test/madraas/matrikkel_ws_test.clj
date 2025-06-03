@@ -3,12 +3,14 @@
             [clojure.test :refer [deftest is testing]]
             [madraas.matrikkel-ws :as matrikkel-ws]))
 
-(xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
-               'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
-               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
-               'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
-               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
-               'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
+(xml/alias-uri 'xsi      "http://www.w3.org/2001/XMLSchema-instance"
+               'soapenv  "http://schemas.xmlsoap.org/soap/envelope/"
+               'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
+               'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+               'endring  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
+               'ned      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
+               'store    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (deftest matrikkel-context-test
   (testing "Matrikkel context"
@@ -95,18 +97,68 @@
 
 (deftest pakk-ut-ider-test
   (is (= [{:domene-klasse "Veg" :id "1"}
-          {:domene-klasse "Adresse" :id "1"}
-          {:domene-klasse "Krets" :id "1"}]
+          {:domene-klasse "Adresse" :id "2"}
+          {:domene-klasse "Krets" :id "3"}]
          (matrikkel-ws/pakk-ut-ider
           ::ned/findIdsEtterIdResponse
-          (xml/sexp-as-element [::soapenv/Envelope
-                                [::soapenv/Body
-                                 [::ned/findIdsEtterIdResponse
-                                  [::ned/return
-                                   {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"}
-                                   [::dom/item {::xsi/type "a:VegId"}
-                                    [::dom/value "1"]]
-                                   [::dom/item {::xsi/type "a:AdresseId"}
-                                    [::dom/value "2"]]
-                                   [::dom/item {::xsi/type "a:KretsId"}
-                                    [::dom/value "3"]]]]]])))))
+          (-> (xml/sexp-as-element [::soapenv/Envelope
+                                    [::soapenv/Body
+                                     [::ned/findIdsEtterIdResponse
+                                      [::ned/return
+                                       {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
+                                       [::dom/item {::xsi/type "a:VegId"}
+                                        [::dom/value "1"]]
+                                       [::dom/item {::xsi/type "a:AdresseId"}
+                                        [::dom/value "2"]]
+                                       [::dom/item {::xsi/type "a:KretsId"}
+                                        [::dom/value "3"]]]]]])
+              xml/emit-str
+              xml/parse-str)))))
+
+(deftest pakk-ut-fylke-test
+  (is (= {:fylke/id "1"
+          :fylke/nummer "01"
+          :fylke/navn "HUTTIHEITA"
+          :fylke/gyldig-til "2025-01-01"
+          :fylke/ny-id "2"
+          :versjon/nummer "42"}
+         (matrikkel-ws/pakk-ut-fylke
+          (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+                                            ::xsi/type "k:Fylke"}
+                                [::dom/id {::xsi/type "k:FylkeId"}
+                                 [::dom/value "1"]]
+                                [::dom/versjon "42"]
+                                [::kommune/fylkesnavn "HUTTIHEITA"]
+                                [::kommune/fylkesnummer "01"]
+                                [::kommune/gyldigTilDato
+                                 [::dom/date "2025-01-01"]]
+                                [::kommune/nyFylkeId
+                                 [::dom/value "2"]]])))))
+
+(deftest pakk-ut-kommune-test
+  (is (= {:kommune/id "101"
+          :kommune/nummer "0101"
+          :kommune/navn "HUTTIHEITA"
+          :kommune/fylke "1"
+          :kommune/gyldig-til "2025-01-01"
+          :kommune/ny-id "102"
+          :kommune/senterpunkt {:x "1" :y "2" :z "3"}
+          :versjon/nummer "42"}
+         (matrikkel-ws/pakk-ut-kommune
+          (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+                                            ::xsi/type "k:Kommune"}
+                                [::dom/id {::xsi/type "k:KommuneId"}
+                                 [::dom/value "101"]]
+                                [::dom/versjon "42"]
+                                [::kommune/kommunenavn "HUTTIHEITA"]
+                                [::kommune/kommunenummer "0101"]
+                                [::kommune/fylkeId
+                                 [::dom/value "1"]]
+                                [::kommune/gyldigTilDato
+                                 [::dom/date "2025-01-01"]]
+                                [::kommune/nyKommuneId
+                                 [::dom/value "102"]]
+                                [::kommune/senterpunkt
+                                 [::geometri/x "1"]
+                                 [::geometri/y "2"]
+                                 [::geometri/z "3"]]])))))

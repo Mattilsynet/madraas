@@ -6,12 +6,20 @@
    [clojure.string :as str]
    [madraas.xml-helpers :as xh]))
 
-(xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
-               'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
-               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
-               'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
-               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
-               'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
+(xml/alias-uri
+ ;; SOAP- og XML-navnerom
+ 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
+ 'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
+
+ ;; Domene-navnerom som brukes for typene til Kartverket
+ 'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+ 'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
+ 'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+
+ ;; Tjeneste-navnerom
+ 'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
+ 'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
+ 'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (def domene-ns
   {"adresse" ["Adresse" "Krets" "Veg"]
@@ -134,6 +142,41 @@
                :domene-klasse (-> item
                                   (xh/xsi-type uri->ns-alias)
                                   id-type->domene-klasse)}))))
+
+(defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
+  (let [shaved (-> (xh/get-in-xml xml [::dom/item])
+                   (xh/select-tags (keys tag-name-mappings)))
+        transformed (reduce (fn [updated [tag update-fn]]
+                              (update updated tag update-fn))
+                            shaved tag-transforms)]
+    (set/rename-keys transformed tag-name-mappings)))
+
+(defn pakk-ut-fylke [xml-fylke]
+  (pakk-ut-entitet xml-fylke {::dom/id :fylke/id
+                              ::dom/versjon :versjon/nummer
+                              ::kommune/fylkesnummer :fylke/nummer
+                              ::kommune/fylkesnavn :fylke/navn
+                              ::kommune/gyldigTilDato :fylke/gyldig-til
+                              ::kommune/nyFylkeId :fylke/ny-id}
+                   {::dom/id #(xh/get-in-xml % [::dom/value])
+                    ::kommune/nyFylkeId #(xh/get-in-xml % [::dom/value])
+                    ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])}))
+
+(defn pakk-ut-kommune [xml-kommune]
+  (pakk-ut-entitet xml-kommune {::dom/id :kommune/id
+                                ::dom/versjon :versjon/nummer
+                                ::kommune/kommunenummer :kommune/nummer
+                                ::kommune/fylkeId :kommune/fylke
+                                ::kommune/kommunenavn :kommune/navn
+                                ::kommune/gyldigTilDato :kommune/gyldig-til
+                                ::kommune/nyKommuneId :kommune/ny-id
+                                ::kommune/senterpunkt :kommune/senterpunkt}
+                   {::dom/id #(xh/get-in-xml % [::dom/value])
+                    ::kommune/fylkeId #(xh/get-in-xml % [::dom/value])
+                    ::kommune/nyKommuneId #(xh/get-in-xml % [::dom/value])
+                    ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
+                    ::kommune/senterpunkt #(-> (xh/select-tags % [::geometri/x ::geometri/y ::geometri/z])
+                                               (set/rename-keys {::geometri/x :x ::geometri/y :y ::geometri/z :z}))}))
 
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request domene-klasse fra-id)

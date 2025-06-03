@@ -11,15 +11,15 @@
   (:import
    (java.time Duration)))
 
-(xml/alias-uri 'xsi     "http://www.w3.org/2001/XMLSchema-instance"
-               'soapenv "http://schemas.xmlsoap.org/soap/envelope/"
-               'dom     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
-               'adr     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
-               'kommune "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
-               'geo "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
-               'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
-               'ned     "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
-               'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
+(xml/alias-uri 'xsi      "http://www.w3.org/2001/XMLSchema-instance"
+               'soapenv  "http://schemas.xmlsoap.org/soap/envelope/"
+               'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'adr      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+               'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+               'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
+               'endring  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
+               'ned      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
+               'store    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (comment
   (def config
@@ -76,69 +76,12 @@
                                    ::adr/kortAdressenavn :vei/kort-navn}))))
 
   (def fylker
-    (-> (matrikkel-ws/last-ned config "Fylke" 0)
-
-        (->> (map #(-> %
-                       (xh/get-in-xml [::dom/item])
-                       (xh/select-tags  [
-                                         ::dom/id
-                                         ::dom/versjon
-                                         ::kommune/fylkesnummer
-                                         ::kommune/fylkesnavn
-                                         ::kommune/gyldigTilDato
-                                         ::kommune/nyFylkeId
-                                         ])
-                       (update ::dom/id xh/get-in-xml [::dom/value])
-                       (update ::kommune/nyFylkeId xh/get-in-xml [::dom/value])
-                       (update ::kommune/gyldigTilDato xh/get-in-xml [::dom/date])
-                       (set/rename-keys {::dom/id :fylke/id
-                                         ::dom/versjon :versjon/nummer
-                                         ::kommune/fylkesnummer :fylke/nummer
-                                         ::kommune/fylkesnavn :fylke/navn
-                                         ::kommune/gyldigTilDato :fylke/gyldig-til
-                                         ::kommune/nyFylkeId :fylke/ny-id}))))
-             ))
+    (->> (matrikkel-ws/last-ned config "Fylke" 0)
+         (map matrikkel-ws/pakk-ut-fylke)))
 
   (def kommuner
-    (-> (->> (matrikkel-ws/find-ids-etter-id-request "Kommune" 0)
-             (matrikkel-ws/be-om-såpe
-              config
-              "NedlastningServiceWS")
-             :body)
-        (xh/get-in-xml [::soapenv/Envelope ::soapenv/Body ::ned/findIdsEtterIdResponse ::ned/return])
-        (->> (map (fn [kommune] {:id (xh/get-in-xml kommune [::dom/item ::dom/value])
-                                 :domene-klasse (-> kommune
-                                                    (xh/xsi-type matrikkel-ws/uri->ns-alias)
-                                                    matrikkel-ws/id-type->domene-klasse)}))
-             matrikkel-ws/get-objects-request
-             (matrikkel-ws/be-om-såpe config "StoreServiceWS")
-             :body)
-        (xh/get-in-xml [::soapenv/Envelope ::soapenv/Body ::store/getObjectsResponse
-                        ::store/return ::dom/item])
-        (->> (map #(-> (xh/select-tags % [
-                                          ::dom/versjon
-                                          ::kommune/fylkeId
-                                          ::kommune/kommunenummer
-                                          ::kommune/kommunenavn
-                                          ::kommune/gyldigTilDato
-                                          ::kommune/nyKommuneId
-                                          ::kommune/senterpunkt
-                                          ])
-                       (update ::kommune/fylkeId xh/get-in-xml [::dom/value])
-                       (update ::kommune/nyKommuneId xh/get-in-xml [::dom/value])
-                       (update ::kommune/gyldigTilDato xh/get-in-xml [::dom/date])
-                       (update ::kommune/senterpunkt xh/select-tags [::geo/x ::geo/y ::geo/z])
-                       (update ::kommune/senterpunkt set/rename-keys {::geo/x :x
-                                                                      ::geo/y :y
-                                                                      ::geo/z :z})
-                       (set/rename-keys {::dom/versjon :versjon/nummer
-                                         ::kommune/kommunenummer :kommune/nummer
-                                         ::kommune/fylkeId :kommune/fylke
-                                         ::kommune/kommunenavn :kommune/navn
-                                         ::kommune/gyldigTilDato :fylke/gyldig-til
-                                         ::kommune/nyKommuneId :kommune/ny-id
-                                         ::kommune/senterpunkt :kommune/senterpunkt}))))
-             ))
+    (->> (matrikkel-ws/last-ned config "Kommune" 0)
+         (map matrikkel-ws/pakk-ut-kommune)))
 
 
   )
