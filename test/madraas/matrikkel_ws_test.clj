@@ -6,6 +6,7 @@
 (xml/alias-uri 'xsi      "http://www.w3.org/2001/XMLSchema-instance"
                'soapenv  "http://schemas.xmlsoap.org/soap/envelope/"
                'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+               'adresse  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
                'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
                'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                'endring  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
@@ -162,3 +163,20 @@
                                  [::geometri/x "1"]
                                  [::geometri/y "2"]
                                  [::geometri/z "3"]]])))))
+
+(deftest pakk-ut-vei-test
+  (is (= {:vei/id "123456789"
+          :vei/navn "Stien i lien"
+          :vei/kort-navn "Stien"
+          :vei/kommune "101"
+          :versjon/nummer "42"}
+         (matrikkel-ws/pakk-ut-vei
+          (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+                                            ::xsi/type "a:Veg"}
+                                [::dom/id {::xsi/type "a:VegId"}
+                                 [::dom/value "123456789"]]
+                                [::dom/versjon "42"]
+                                [::adresse/adressenavn "Stien i lien"]
+                                [::adresse/kortAdressenavn "Stien"]
+                                [::adresse/kommuneId
+                                 [::dom/value "101"]]])))))

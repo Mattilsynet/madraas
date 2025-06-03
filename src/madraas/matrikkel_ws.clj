@@ -13,6 +13,7 @@
 
  ;; Domene-navnerom som brukes for typene til Kartverket
  'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
+ 'adresse  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
  'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
  'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
 
@@ -177,6 +178,15 @@
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
                     ::kommune/senterpunkt #(-> (xh/select-tags % [::geometri/x ::geometri/y ::geometri/z])
                                                (set/rename-keys {::geometri/x :x ::geometri/y :y ::geometri/z :z}))}))
+
+(defn pakk-ut-vei [xml-vei]
+  (pakk-ut-entitet xml-vei {::dom/id :vei/id
+                            ::dom/versjon :versjon/nummer
+                            ::adresse/kommuneId :vei/kommune
+                            ::adresse/adressenavn :vei/navn
+                            ::adresse/kortAdressenavn :vei/kort-navn}
+                   {::dom/id #(xh/get-in-xml % [::dom/value])
+                    ::adresse/kommuneId #(xh/get-in-xml % [::dom/value])}))
 
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request domene-klasse fra-id)
