@@ -123,6 +123,28 @@
     {:status status
      :body (xml/parse body)}))
 
+(defn pakk-ut-svar [svar-type soap-svar]
+  (xh/get-in-xml soap-svar [::soapenv/Envelope ::soapenv/Body
+                            svar-type (keyword (namespace svar-type) "return")]))
+
+(defn pakk-ut-ider [svar-type soap-svar]
+  (->> (pakk-ut-svar svar-type soap-svar)
+       (map (fn [item]
+              {:id (xh/get-in-xml item [::dom/item ::dom/value])
+               :domene-klasse (-> item
+                                  (xh/xsi-type uri->ns-alias)
+                                  id-type->domene-klasse)}))))
+
+(defn last-ned [config domene-klasse fra-id]
+  (->> (find-ids-etter-id-request domene-klasse fra-id)
+       (be-om-såpe config "NedlastningServiceWS")
+       :body
+       (pakk-ut-ider ::ned/findIdsEtterIdResponse)
+       get-objects-request
+       (be-om-såpe config "StoreServiceWS")
+       :body
+       (pakk-ut-svar ::store/getObjectsResponse)))
+
 (comment
   (xml/emit-str (xml/aggregate-xmlns (xml/sexp-as-element (find-ids-etter-id-request 15 "Adresse"))))
   (str/split (xml/indent-str

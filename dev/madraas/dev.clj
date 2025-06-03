@@ -76,29 +76,18 @@
                                    ::adr/kortAdressenavn :vei/kort-navn}))))
 
   (def fylker
-    (-> (->> (matrikkel-ws/find-ids-etter-id-request "Fylke" 0)
-             (matrikkel-ws/be-om-såpe
-              config
-              "NedlastningServiceWS")
-             :body)
-        (xh/get-in-xml [::soapenv/Envelope ::soapenv/Body ::ned/findIdsEtterIdResponse ::ned/return])
-        (->> (map (fn [fylke] {:id (xh/get-in-xml fylke [::dom/item ::dom/value])
-                               :domene-klasse (-> fylke
-                                                  (xh/xsi-type matrikkel-ws/uri->ns-alias)
-                                                  matrikkel-ws/id-type->domene-klasse)}))
-             matrikkel-ws/get-objects-request
-             (matrikkel-ws/be-om-såpe config "StoreServiceWS")
-             :body)
-        (xh/get-in-xml [::soapenv/Envelope ::soapenv/Body ::store/getObjectsResponse
-                        ::store/return ::dom/item])
-        (->> (map #(-> (xh/select-tags % [
-                                          ::dom/id
-                                          ::dom/versjon
-                                          ::kommune/fylkesnummer
-                                          ::kommune/fylkesnavn
-                                          ::kommune/gyldigTilDato
-                                          ::kommune/nyFylkeId
-                                          ])
+    (-> (matrikkel-ws/last-ned config "Fylke" 0)
+
+        (->> (map #(-> %
+                       (xh/get-in-xml [::dom/item])
+                       (xh/select-tags  [
+                                         ::dom/id
+                                         ::dom/versjon
+                                         ::kommune/fylkesnummer
+                                         ::kommune/fylkesnavn
+                                         ::kommune/gyldigTilDato
+                                         ::kommune/nyFylkeId
+                                         ])
                        (update ::dom/id xh/get-in-xml [::dom/value])
                        (update ::kommune/nyFylkeId xh/get-in-xml [::dom/value])
                        (update ::kommune/gyldigTilDato xh/get-in-xml [::dom/date])

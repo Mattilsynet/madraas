@@ -78,3 +78,35 @@
             [::endring/maksAntall 10000]
             (matrikkel-ws/matrikkel-context 'endring)]]]
          (matrikkel-ws/find-endringer-request "Veg" 1138))))
+
+(deftest pakk-ut-svar-test
+  (is (= (xml/sexps-as-fragment [::dom/item "1"]
+                                [::dom/item "2"]
+                                [::dom/item "3"])
+         (matrikkel-ws/pakk-ut-svar
+          ::store/getObjectsResponse
+          (xml/sexp-as-element [::soapenv/Envelope
+                                [::soapenv/Body
+                                 [::store/getObjectsResponse
+                                  [::store/return
+                                   [::dom/item "1"]
+                                   [::dom/item "2"]
+                                   [::dom/item "3"]]]]])))))
+
+(deftest pakk-ut-ider-test
+  (is (= [{:domene-klasse "Veg" :id "1"}
+          {:domene-klasse "Adresse" :id "1"}
+          {:domene-klasse "Krets" :id "1"}]
+         (matrikkel-ws/pakk-ut-ider
+          ::ned/findIdsEtterIdResponse
+          (xml/sexp-as-element [::soapenv/Envelope
+                                [::soapenv/Body
+                                 [::ned/findIdsEtterIdResponse
+                                  [::ned/return
+                                   {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"}
+                                   [::dom/item {::xsi/type "a:VegId"}
+                                    [::dom/value "1"]]
+                                   [::dom/item {::xsi/type "a:AdresseId"}
+                                    [::dom/value "2"]]
+                                   [::dom/item {::xsi/type "a:KretsId"}
+                                    [::dom/value "3"]]]]]])))))
