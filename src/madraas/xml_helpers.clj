@@ -10,7 +10,7 @@
       (first content)
       content)))
 
-(defn get-in-xml [xml path]
+(defn get-in-xml* [xml path]
   (loop [node xml
          ks (seq path)]
     (cond (not ks) node
@@ -20,7 +20,19 @@
 
           (seq? node)
           (->> (filter #(= (:tag %) (first ks)) node)
-               (map #(get-in-xml % ks))))))
+               (map #(get-in-xml* % ks))))))
+
+(defn get-in-xml [xml path]
+  (let [res (get-in-xml* xml path)]
+    (if (sequential? res)
+      (flatten res)
+      res)))
+
+(defn get-first [xml path]
+  (let [res (get-in-xml xml path)]
+    (if (sequential? res)
+      (first res)
+      res)))
 
 (defn xsi-type
   ([node] (-> node :attrs ::xsi/type))

@@ -33,7 +33,20 @@
                   "Test 321"]
                  [::example/another-element
                   "Test 456"]])
-               (xh/get-in-xml [::example/an-element ::example/another-element]))))))
+               (xh/get-in-xml [::example/an-element ::example/another-element]))))
+
+    (is (= ["Test 123" "Test 456" "Test 789"]
+           (-> (xml/sexp-as-element
+                [::example/an-element
+                 [::example/another-element
+                  [::example/a-third-element
+                   "Test 123"]
+                  [::example/a-third-element
+                   "Test 456"]]
+                 [::example/another-element
+                  [::example/a-third-element
+                   "Test 789"]]])
+               (xh/get-in-xml [::example/an-element ::example/another-element ::example/a-third-element]))))))
 
 (deftest xsi-type-test
   (testing "Extracting XSI type from an element"
@@ -65,3 +78,18 @@
                (xh/get-in-xml [::example/barn])
                (xh/select-tags [::example/eldstemann
                                 ::example/attpåklatten]))))))
+
+(deftest get-first
+  (testing "Get first element of type in XML"
+    (is (= "Test 123"
+           (-> (xml/sexp-as-element
+                [::example/an-element
+                 [::example/another-element
+                  [::example/a-third-element
+                   "Test 123"]
+                  [::example/a-third-element
+                   "Test 456"]]
+                 [::example/another-element
+                  [::example/a-third-element
+                   "Test 789"]]])
+               (xh/get-first [::example/an-element ::example/another-element ::example/a-third-element]))))))
