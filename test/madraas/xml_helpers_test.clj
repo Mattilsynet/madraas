@@ -53,7 +53,7 @@
                xml/parse-str
                (xh/xsi-type {"http://example.com/" "my-alias"}))))))
 
-(deftest get-in-xml-test
+(deftest select-tags-test
   (testing "XML select tags"
     (is (= {::example/eldstemann "Test 123"
             ::example/attpåklatten "Test 789"}
