@@ -205,5 +205,5 @@
 
     (is (= "25832" (get-in adresse [:adresse/posisjon :posisjon/opprinnelig-koordinatsystem])))
 
-    (is (= {:x 541500.0, :y 6571000.0}
+    (is (= {:x 541500.0, :y 6571000.0 :z 0.0}
            (get-in adresse [:adresse/posisjon "25832"])))))
