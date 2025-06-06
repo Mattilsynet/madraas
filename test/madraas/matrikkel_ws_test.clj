@@ -180,3 +180,30 @@
                                 [::adresse/kortAdressenavn "Stien"]
                                 [::adresse/kommuneId
                                  [::dom/value "101"]]])))))
+
+(deftest pakk-ut-vei-adresse-test
+  (let [adresse (matrikkel-ws/pakk-ut-vei-adresse
+                 (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+                                                   ::xsi/type "a:VegAdresse"}
+                                       [::dom/id {::xsi/type "a:VegAdresseId"}
+                                        [::dom/value "987654321"]]
+                                       [::dom/versjon "42"]
+                                       [::adresse/vegId
+                                        [::dom/value "123456789"]]
+                                       [::adresse/nummer "3"]
+                                       [::adresse/representasjonspunkt
+                                        [::geometri/koordinatsystemKodeId
+                                         [::dom/value "10"]]
+                                        [::geometri/position
+                                         [::geometri/x "541500.0"]
+                                         [::geometri/y "6571000.0"]]]]))]
+    (is (= {:adresse/id "987654321"
+            :versjon/nummer "42"
+            :adresse/nummer "3"
+            :adresse/vei "123456789"}
+           (select-keys adresse [:adresse/id :versjon/nummer :adresse/nummer :adresse/vei])))
+
+    (is (= "25832" (get-in adresse [:adresse/posisjon :posisjon/opprinnelig-koordinatsystem])))
+
+    (is (= {:x 541500.0, :y 6571000.0}
+           (get-in adresse [:adresse/posisjon "25832"])))))

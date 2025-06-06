@@ -4,6 +4,7 @@
    [clojure.data.xml :as xml]
    [clojure.set :as set]
    [clojure.string :as str]
+   [madraas.geo :as geo]
    [madraas.xml-helpers :as xh]))
 
 (xml/alias-uri
@@ -23,7 +24,7 @@
  'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (def domene-ns
-  {"adresse" ["Adresse" "Krets" "Veg"]
+  {"adresse" ["Adresse" "Krets" "Matrikkeladresse" "Veg" "Vegadresse"]
    "kommune" ["Kommune" "Fylke"]})
 
 ;; Forferdelig navn på denne funksjonen. Gjør vondt i sjela.
@@ -59,6 +60,21 @@
            domene}))
        vals
        (into {})))
+
+(def matrikkel-id->epsg-kode
+  {"10" "25832"
+   "11" "25833"
+   "13" "25835"
+   "24" "4258"})
+
+(def koordinatsystemer
+  ["25832"
+   "25833"
+   "25835"
+   "3857"
+   "4258"
+   "4326"])
+
 (defn xml-ns [alias]
   (str (get (ns-aliases 'madraas.matrikkel-ws) (symbol alias) alias)))
 
@@ -147,6 +163,24 @@
 (defn pakk-ut-verdi [xml]
   (xh/get-in-xml xml [::dom/value]))
 
+(defn pakk-ut-representasjonspunkt [representasjonspunkt-xml]
+  (let [koordinatsystem (-> (xh/get-in-xml representasjonspunkt-xml
+                                           [::geometri/koordinatsystemKodeId ::dom/value])
+                            first
+                            matrikkel-id->epsg-kode)
+        posisjon (-> representasjonspunkt-xml
+                     (xh/get-in-xml [::geometri/position])
+                     (xh/select-tags [::geometri/x ::geometri/y ::geometri/z])
+                     (set/rename-keys {::geometri/x :x
+                                       ::geometri/y :y
+                                       ::geometri/z :z})
+                     (->> (map (fn [[k v]] [k (parse-double v)]))
+                          (into {})))]
+    (into {:posisjon/opprinnelig-koordinatsystem koordinatsystem}
+          (map (fn [til-system]
+                 [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
+               koordinatsystemer))))
+
 (defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
                    (xh/select-tags (keys tag-name-mappings)))
@@ -190,6 +224,17 @@
                             ::adresse/kortAdressenavn :vei/kort-navn}
                    {::dom/id pakk-ut-verdi
                     ::adresse/kommuneId pakk-ut-verdi}))
+
+(defn pakk-ut-vei-adresse [xml-vei-adresse]
+  (pakk-ut-entitet xml-vei-adresse
+                   {::dom/id :adresse/id
+                    ::dom/versjon :versjon/nummer
+                    ::adresse/nummer :adresse/nummer
+                    ::adresse/vegId :adresse/vei
+                    ::adresse/representasjonspunkt :adresse/posisjon}
+                   {::dom/id pakk-ut-verdi
+                    ::adresse/vegId pakk-ut-verdi
+                    ::adresse/representasjonspunkt pakk-ut-representasjonspunkt}))
 
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request domene-klasse fra-id)
