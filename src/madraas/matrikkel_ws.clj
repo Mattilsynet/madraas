@@ -144,6 +144,9 @@
                                   (xh/xsi-type uri->ns-alias)
                                   id-type->domene-klasse)}))))
 
+(defn pakk-ut-verdi [xml]
+  (xh/get-in-xml xml [::dom/value]))
+
 (defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
                    (xh/select-tags (keys tag-name-mappings)))
@@ -159,8 +162,8 @@
                               ::kommune/fylkesnavn :fylke/navn
                               ::kommune/gyldigTilDato :fylke/gyldig-til
                               ::kommune/nyFylkeId :fylke/ny-id}
-                   {::dom/id #(xh/get-in-xml % [::dom/value])
-                    ::kommune/nyFylkeId #(xh/get-in-xml % [::dom/value])
+                   {::dom/id pakk-ut-verdi
+                    ::kommune/nyFylkeId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])}))
 
 (defn pakk-ut-kommune [xml-kommune]
@@ -173,8 +176,8 @@
                                 ::kommune/nyKommuneId :kommune/ny-id
                                 ::kommune/senterpunkt :kommune/senterpunkt}
                    {::dom/id #(xh/get-in-xml % [::dom/value])
-                    ::kommune/fylkeId #(xh/get-in-xml % [::dom/value])
-                    ::kommune/nyKommuneId #(xh/get-in-xml % [::dom/value])
+                    ::kommune/fylkeId pakk-ut-verdi
+                    ::kommune/nyKommuneId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
                     ::kommune/senterpunkt #(-> (xh/select-tags % [::geometri/x ::geometri/y ::geometri/z])
                                                (set/rename-keys {::geometri/x :x ::geometri/y :y ::geometri/z :z}))}))
@@ -185,8 +188,8 @@
                             ::adresse/kommuneId :vei/kommune
                             ::adresse/adressenavn :vei/navn
                             ::adresse/kortAdressenavn :vei/kort-navn}
-                   {::dom/id #(xh/get-in-xml % [::dom/value])
-                    ::adresse/kommuneId #(xh/get-in-xml % [::dom/value])}))
+                   {::dom/id pakk-ut-verdi
+                    ::adresse/kommuneId pakk-ut-verdi}))
 
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request domene-klasse fra-id)
