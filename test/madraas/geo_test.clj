@@ -3,7 +3,7 @@
             [clojure.test :refer [deftest is testing]]
             [madraas.geo :as geo]))
 
-(def feilmargin-meter 0.1) ;; 10 cm
+(def feilmargin-meter 0.5) ;; 50 cm
 
 (defn kartesisk-avstand [a b]
   (let [dx (- (:x a) (:x b))

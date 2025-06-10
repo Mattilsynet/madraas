@@ -67,14 +67,6 @@
    "13" "25835"
    "24" "4258"})
 
-(def koordinatsystemer
-  ["25832"
-   "25833"
-   "25835"
-   "3857"
-   "4258"
-   "4326"])
-
 (defn xml-ns [alias]
   (str (get (ns-aliases 'madraas.matrikkel-ws) (symbol alias) alias)))
 
@@ -179,7 +171,7 @@
     (into {:posisjon/opprinnelig-koordinatsystem koordinatsystem}
           (map (fn [til-system]
                  [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
-               koordinatsystemer))))
+               (keys geo/koordinatsystemer)))))
 
 (defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
