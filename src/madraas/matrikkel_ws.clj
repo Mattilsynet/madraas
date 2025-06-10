@@ -209,7 +209,7 @@
                                 ::kommune/gyldigTilDato :kommune/gyldig-til
                                 ::kommune/nyKommuneId :kommune/ny-id
                                 ::kommune/senterpunkt :kommune/senterpunkt}
-                   {::dom/id #(xh/get-in-xml % [::dom/value])
+                   {::dom/id pakk-ut-verdi
                     ::kommune/fylkeId pakk-ut-verdi
                     ::kommune/nyKommuneId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
