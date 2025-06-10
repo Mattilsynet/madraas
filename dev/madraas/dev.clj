@@ -51,4 +51,7 @@
     (->> (matrikkel-ws/last-ned config "Kommune" 0)
          (map matrikkel-ws/pakk-ut-kommune)))
 
+  (def postnummere
+    (->> (matrikkel-ws/last-ned config "Postnummeromrade" 0)
+         (map matrikkel-ws/pakk-ut-postnummerområde)))
   )

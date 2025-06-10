@@ -24,7 +24,7 @@
  'store   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (def domene-ns
-  {"adresse" ["Adresse" "Krets" "Matrikkeladresse" "Veg" "Vegadresse"]
+  {"adresse" ["Adresse" "Krets" "Matrikkeladresse" "Postnummeromrade" "Veg" "Vegadresse"]
    "kommune" ["Kommune" "Fylke"]})
 
 ;; Forferdelig navn på denne funksjonen. Gjør vondt i sjela.
@@ -215,6 +215,16 @@
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
                     ::kommune/senterpunkt #(-> (xh/select-tags % [::geometri/x ::geometri/y ::geometri/z])
                                                (set/rename-keys {::geometri/x :x ::geometri/y :y ::geometri/z :z}))}))
+
+(defn pakk-ut-postnummerområde [xml-postnummerområde]
+  (pakk-ut-entitet xml-postnummerområde {::dom/id :postnummer/krets-id
+                                         ::dom/versjon :versjon/nummer
+                                         ::adresse/kretsnummer :postnummer/nummer
+                                         ::adresse/kretsnavn :postnummer/poststed
+                                         ::adresse/kommuneIds :postnummer/kommuner}
+                   {::dom/id pakk-ut-verdi
+                    ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
+                                            (cond-> kommuner (string? kommuner) vector))}))
 
 (defn pakk-ut-vei [xml-vei]
   (pakk-ut-entitet xml-vei {::dom/id :vei/id

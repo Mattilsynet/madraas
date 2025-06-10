@@ -207,3 +207,40 @@
 
     (is (= {:x 541500.0, :y 6571000.0 :z 0.0}
            (get-in adresse [:adresse/posisjon "25832"])))))
+
+(deftest pakk-ut-postnummerområde
+  (testing "Pakk ut postnummerområde"
+    (is (= {:postnummer/krets-id "1234"
+            :versjon/nummer "42"
+            :postnummer/nummer "0987"
+            :postnummer/poststed "OSLO"
+            :postnummer/kommuner ["5678" "8765"]}
+
+           (matrikkel-ws/pakk-ut-postnummerområde
+            (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+                                              ::xsi/type "a:Postnummeromrade"}
+                                  [::dom/id {::xsi/type "a:PostnummeromradeId"}
+                                   [::dom/value "1234"]]
+                                  [::dom/versjon "42"]
+                                  [::adresse/kretsnummer "0987"]
+                                  [::adresse/kretsnavn "OSLO"]
+                                  [::adresse/kommuneIds
+                                   [::kommune/item
+                                    [::dom/value "5678"]]
+                                   [::kommune/item
+                                    [::dom/value "8765"]]]])))))
+
+  (testing "Postnummerområdes kommuner er alltid en liste"
+    (is (= ["5678"]
+           (:postnummer/kommuner
+            (matrikkel-ws/pakk-ut-postnummerområde
+             (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+                                               ::xsi/type "a:Postnummeromrade"}
+                                   [::dom/id {::xsi/type "a:PostnummeromradeId"}
+                                    [::dom/value "1234"]]
+                                   [::dom/versjon "42"]
+                                   [::adresse/kretsnummer "0987"]
+                                   [::adresse/kretsnavn "OSLO"]
+                                   [::adresse/kommuneIds
+                                    [::kommune/item
+                                     [::dom/value "5678"]]]])))))))
