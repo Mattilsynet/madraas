@@ -41,6 +41,6 @@
         presisjon (get-in koordinatsystemer [til-epsg :presisjon])]
     (when (not= fra-epsg til-epsg)
       (.transform transformerer koordinat koordinat))
-    {:x (-> (.-x koordinat) (* presisjon) math/round (/ presisjon) double)
-     :y (-> (.-y koordinat) (* presisjon) math/round (/ presisjon) double)
-     :z (-> (.-z koordinat) (* presisjon) math/round (/ presisjon) double)}))
+    {:x (-> (.-x koordinat) (* presisjon) math/rint (/ presisjon))
+     :y (-> (.-y koordinat) (* presisjon) math/rint (/ presisjon))
+     :z (-> (.-z koordinat) (* presisjon) math/rint (/ presisjon))}))
