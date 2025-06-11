@@ -176,7 +176,7 @@
                                        ::geometri/z :z})
                      (->> (map (fn [[k v]] [k (parse-double v)]))
                           (into {})))]
-    (into {:posisjon/opprinnelig-koordinatsystem koordinatsystem}
+    (into {:opprinneligKoordinatsystem koordinatsystem}
           (map (fn [til-system]
                  [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
                (keys geo/koordinatsystemer)))))
@@ -192,61 +192,61 @@
     (set/rename-keys transformed tag-name-mappings)))
 
 (defn pakk-ut-fylke [xml-fylke]
-  (pakk-ut-entitet xml-fylke {::dom/id :fylke/id
-                              ::dom/versjon :versjon/nummer
-                              ::kommune/fylkesnummer :fylke/nummer
-                              ::kommune/fylkesnavn :fylke/navn
-                              ::kommune/gyldigTilDato :fylke/gyldig-til
-                              ::kommune/nyFylkeId :fylke/ny-id}
+  (pakk-ut-entitet xml-fylke {::dom/id :id
+                              ::dom/versjon :versjonsnummer
+                              ::kommune/fylkesnummer :nummer
+                              ::kommune/fylkesnavn :navn
+                              ::kommune/gyldigTilDato :gyldigTil
+                              ::kommune/nyFylkeId :nyId}
                    {::dom/id pakk-ut-verdi
                     ::kommune/fylkesnavn normaliser-stedsnavn
                     ::kommune/nyFylkeId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])}))
 
 (defn pakk-ut-kommune [xml-kommune]
-  (pakk-ut-entitet xml-kommune {::dom/id :kommune/id
-                                ::dom/versjon :versjon/nummer
-                                ::kommune/kommunenummer :kommune/nummer
-                                ::kommune/fylkeId :kommune/fylke
-                                ::kommune/kommunenavn :kommune/navn
-                                ::kommune/gyldigTilDato :kommune/gyldig-til
-                                ::kommune/nyKommuneId :kommune/ny-id
-                                ::kommune/senterpunkt :kommune/senterpunkt}
+  (pakk-ut-entitet xml-kommune {::dom/id :id
+                                ::dom/versjon :versjonsnummer
+                                ::kommune/kommunenummer :nummer
+                                ::kommune/fylkeId :fylke
+                                ::kommune/kommunenavn :navn
+                                ::kommune/gyldigTilDato :gyldigTil
+                                ::kommune/nyKommuneId :nyId
+                                ::kommune/representasjonspunkt :senterpunkt}
                    {::dom/id pakk-ut-verdi
                     ::kommune/kommunenavn normaliser-stedsnavn
                     ::kommune/fylkeId pakk-ut-verdi
                     ::kommune/nyKommuneId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
-                    ::kommune/senterpunkt #(-> (xh/select-tags % [::geometri/x ::geometri/y ::geometri/z])
-                                               (set/rename-keys {::geometri/x :x ::geometri/y :y ::geometri/z :z}))}))
+                    ::kommune/representasjonspunkt pakk-ut-representasjonspunkt}))
 
 (defn pakk-ut-postnummerområde [xml-postnummerområde]
-  (pakk-ut-entitet xml-postnummerområde {::dom/id :postnummer/krets-id
-                                         ::dom/versjon :versjon/nummer
-                                         ::adresse/kretsnummer :postnummer/nummer
-                                         ::adresse/kretsnavn :postnummer/poststed
-                                         ::adresse/kommuneIds :postnummer/kommuner}
+  (pakk-ut-entitet xml-postnummerområde {::dom/id :kretsId
+                                         ::dom/versjon :versjonsnummer
+                                         ::adresse/kretsnummer :postnummer
+                                         ::adresse/kretsnavn :poststed
+                                         ::adresse/kommuneIds :kommuner}
                    {::dom/id pakk-ut-verdi
                     ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
                                             (cond-> kommuner (string? kommuner) vector))}))
 
 (defn pakk-ut-vei [xml-vei]
-  (pakk-ut-entitet xml-vei {::dom/id :vei/id
-                            ::dom/versjon :versjon/nummer
-                            ::adresse/kommuneId :vei/kommune
-                            ::adresse/adressenavn :vei/navn
-                            ::adresse/kortAdressenavn :vei/kort-navn}
+  (pakk-ut-entitet xml-vei {::dom/id :id
+                            ::dom/versjon :versjonsnummer
+                            ::adresse/kommuneId :kommune
+                            ::adresse/adressenavn :navn
+                            ::adresse/kortAdressenavn :kortNavn}
                    {::dom/id pakk-ut-verdi
                     ::adresse/kommuneId pakk-ut-verdi}))
 
 (defn pakk-ut-vei-adresse [xml-vei-adresse]
   (pakk-ut-entitet xml-vei-adresse
-                   {::dom/id :adresse/id
-                    ::dom/versjon :versjon/nummer
-                    ::adresse/nummer :adresse/nummer
-                    ::adresse/vegId :adresse/vei
-                    ::adresse/representasjonspunkt :adresse/posisjon}
+                   {::dom/id :id
+                    ::dom/versjon :versjonsnummer
+                    ::adresse/nummer :nummer
+                    ::adresse/bokstav :bokstav
+                    ::adresse/vegId :vei
+                    ::adresse/representasjonspunkt :posisjon}
                    {::dom/id pakk-ut-verdi
                     ::adresse/vegId pakk-ut-verdi
                     ::adresse/representasjonspunkt pakk-ut-representasjonspunkt}))

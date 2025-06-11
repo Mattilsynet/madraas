@@ -1,5 +1,6 @@
 (ns madraas.matrikkel-ws-test
   (:require [clojure.data.xml :as xml]
+            [clojure.set :as set]
             [clojure.test :refer [deftest is testing]]
             [madraas.matrikkel-ws :as matrikkel-ws]))
 
@@ -126,12 +127,12 @@
             {})))))
 
 (deftest pakk-ut-fylke-test
-  (is (= {:fylke/id "1"
-          :fylke/nummer "01"
-          :fylke/navn "Huttiheita"
-          :fylke/gyldig-til "2025-01-01"
-          :fylke/ny-id "2"
-          :versjon/nummer "42"}
+  (is (= {:id "1"
+          :nummer "01"
+          :navn "Huttiheita"
+          :gyldigTil "2025-01-01"
+          :nyId "2"
+          :versjonsnummer "42"}
          (matrikkel-ws/pakk-ut-fylke
           (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                                             ::xsi/type "k:Fylke"}
@@ -146,16 +147,18 @@
                                  [::dom/value "2"]]])))))
 
 (deftest pakk-ut-kommune-test
-  (is (= {:kommune/id "101"
-          :kommune/nummer "0101"
-          :kommune/navn "Huttiheita"
-          :kommune/fylke "1"
-          :kommune/gyldig-til "2025-01-01"
-          :kommune/ny-id "102"
-          :kommune/senterpunkt {:x "1" :y "2" :z "3"}
-          :versjon/nummer "42"}
-         (matrikkel-ws/pakk-ut-kommune
-          (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+  (is (= {:id "101"
+          :nummer "0101"
+          :navn "Huttiheita"
+          :fylke "1"
+          :gyldigTil "2025-01-01"
+          :nyId "102"
+          :senterpunkt {:opprinneligKoordinatsystem "25832"
+                        "25832" {:x 1.0
+                                 :y 2.0
+                                 :z 3.0}}
+          :versjonsnummer "42"}
+         (-> (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                                             ::xsi/type "k:Kommune"}
                                 [::dom/id {::xsi/type "k:KommuneId"}
                                  [::dom/value "101"]]
@@ -168,17 +171,22 @@
                                  [::dom/date "2025-01-01"]]
                                 [::kommune/nyKommuneId
                                  [::dom/value "102"]]
-                                [::kommune/senterpunkt
-                                 [::geometri/x "1"]
-                                 [::geometri/y "2"]
-                                 [::geometri/z "3"]]])))))
+                                [::kommune/representasjonspunkt
+                                        [::geometri/koordinatsystemKodeId
+                                         [::dom/value "10"]]
+                                        [::geometri/position
+                                         [::geometri/x "1.0"]
+                                         [::geometri/y "2.0"]
+                                         [::geometri/z "3.0"]]]])
+             matrikkel-ws/pakk-ut-kommune
+             (update :senterpunkt select-keys [:opprinneligKoordinatsystem "25832"])))))
 
 (deftest pakk-ut-vei-test
-  (is (= {:vei/id "123456789"
-          :vei/navn "Stien i lien"
-          :vei/kort-navn "Stien"
-          :vei/kommune "101"
-          :versjon/nummer "42"}
+  (is (= {:id "123456789"
+          :navn "Stien i lien"
+          :kortNavn "Stien"
+          :kommune "101"
+          :versjonsnummer "42"}
          (matrikkel-ws/pakk-ut-vei
           (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
                                             ::xsi/type "a:Veg"}
@@ -200,30 +208,32 @@
                                        [::adresse/vegId
                                         [::dom/value "123456789"]]
                                        [::adresse/nummer "3"]
+                                       [::adresse/bokstav "A"]
                                        [::adresse/representasjonspunkt
                                         [::geometri/koordinatsystemKodeId
                                          [::dom/value "10"]]
                                         [::geometri/position
                                          [::geometri/x "541500.0"]
                                          [::geometri/y "6571000.0"]]]]))]
-    (is (= {:adresse/id "987654321"
-            :versjon/nummer "42"
-            :adresse/nummer "3"
-            :adresse/vei "123456789"}
-           (select-keys adresse [:adresse/id :versjon/nummer :adresse/nummer :adresse/vei])))
+    (is (= {:id "987654321"
+            :versjonsnummer "42"
+            :nummer "3"
+            :bokstav "A"
+            :vei "123456789"}
+           (select-keys adresse [:id :versjonsnummer :nummer :vei :bokstav])))
 
-    (is (= "25832" (get-in adresse [:adresse/posisjon :posisjon/opprinnelig-koordinatsystem])))
+    (is (= "25832" (get-in adresse [:posisjon :opprinneligKoordinatsystem])))
 
     (is (= {:x 541500.0, :y 6571000.0 :z 0.0}
-           (get-in adresse [:adresse/posisjon "25832"])))))
+           (get-in adresse [:posisjon "25832"])))))
 
 (deftest pakk-ut-postnummerområde
   (testing "Pakk ut postnummerområde"
-    (is (= {:postnummer/krets-id "1234"
-            :versjon/nummer "42"
-            :postnummer/nummer "0987"
-            :postnummer/poststed "Oslo"
-            :postnummer/kommuner ["5678" "8765"]}
+    (is (= {:kretsId "1234"
+            :versjonsnummer "42"
+            :postnummer "0987"
+            :poststed "Oslo"
+            :kommuner ["5678" "8765"]}
 
            (matrikkel-ws/pakk-ut-postnummerområde
             (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
@@ -241,7 +251,7 @@
 
   (testing "Postnummerområdes kommuner er alltid en liste"
     (is (= ["5678"]
-           (:postnummer/kommuner
+           (:kommuner
             (matrikkel-ws/pakk-ut-postnummerområde
              (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
                                                ::xsi/type "a:Postnummeromrade"}
