@@ -1,12 +1,23 @@
 (ns madraas.system
-  (:require [clojure.java.io :as io]
-            [confair.config :as config]
-            [nats.core :as nats]
-            [nats.kv :as kv]
-            [nats.stream :as stream]
-            [open-telemetry.core :as otel]
-            [open-telemetry.tracing :as tracing])
-  (:import (java.time Duration)))
+  (:require
+   [clojure.core.async :as a]
+   [clojure.java.io :as io]
+   [confair.config :as config]
+   [madraas.matrikkel-ws :as matrikkel-ws]
+   [nats.core :as nats]
+   [nats.kv :as kv]
+   [nats.stream :as stream]
+   [open-telemetry.core :as otel]
+   [open-telemetry.tracing :as tracing])
+  (:import
+   (java.time Duration)))
+
+(def api-er
+  {"Vegadresse" matrikkel-ws/pakk-ut-vei-adresse
+   "Fylke" matrikkel-ws/pakk-ut-fylke
+   "Kommune" matrikkel-ws/pakk-ut-kommune
+   "Veg" matrikkel-ws/pakk-ut-vei
+   "Postnummeromrade" matrikkel-ws/pakk-ut-postnummerområde})
 
 (defn select-keys-by-ns [m ns]
   (->> (keys m)
@@ -55,3 +66,18 @@
           (string? (:nats.stream/request-timeout (:nats/jet-stream-options config)))
           (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))
         (into extra-config))))
+
+(defn last-ned [config type start-id]
+  (let [ch (a/chan 2000)
+        running? (atom true)]
+    (a/go
+      (loop [start start-id]
+        (tap> (str "Laster ned fra " start))
+        (let [entiteter (->> (matrikkel-ws/last-ned config type start)
+                             (map (get api-er type)))]
+          (a/onto-chan!! ch entiteter false)
+          (if (and @running? (seq entiteter))
+            (recur (apply max (map :id entiteter)))
+            (a/close! ch)))))
+    {:chan ch
+     :stop #(reset! running? false)}))
