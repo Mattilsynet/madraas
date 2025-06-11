@@ -176,10 +176,11 @@
                                        ::geometri/z :z})
                      (->> (map (fn [[k v]] [k (parse-double v)]))
                           (into {})))]
-    (into {:opprinneligKoordinatsystem koordinatsystem}
-          (map (fn [til-system]
-                 [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
-               (keys geo/koordinatsystemer)))))
+    (when koordinatsystem
+      (into {:opprinneligKoordinatsystem koordinatsystem}
+            (map (fn [til-system]
+                   [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
+                 (keys geo/koordinatsystemer))))))
 
 (defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
