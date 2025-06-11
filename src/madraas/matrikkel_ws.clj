@@ -100,16 +100,19 @@
    [::dom/systemVersion "4.4"]
    [::dom/klientIdentifikasjon "madraas"]])
 
-(defn find-ids-etter-id-request [domene-klasse id]
-  (soap-envelope
-   (domene-klasse->ns-aliases domene-klasse)
-   [::ned/findIdsEtterId
-    [::ned/matrikkelBubbleId {::xsi/type (domene-klasse->id-type domene-klasse)}
-     [::dom/value id]]
-    [::ned/domainklasse domene-klasse]
-    [::ned/filter]
-    [::ned/maksAntall 1000]
-    (matrikkel-context 'ned)]))
+(defn find-ids-etter-id-request
+  ([domene-klasse id]
+   (find-ids-etter-id-request nil domene-klasse id))
+  ([config domene-klasse id]
+   (soap-envelope
+    (domene-klasse->ns-aliases domene-klasse)
+    [::ned/findIdsEtterId
+     [::ned/matrikkelBubbleId {::xsi/type (domene-klasse->id-type domene-klasse)}
+      [::dom/value id]]
+     [::ned/domainklasse domene-klasse]
+     [::ned/filter]
+     [::ned/maksAntall (or (:maks-antall config) 1000)]
+     (matrikkel-context 'ned)])))
 
 (defn get-objects-request [ids]
   (soap-envelope
