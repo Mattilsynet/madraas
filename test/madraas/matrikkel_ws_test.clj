@@ -127,11 +127,11 @@
             {})))))
 
 (deftest pakk-ut-fylke-test
-  (is (= {:id "1"
+  (is (= {:id 1
           :nummer "01"
           :navn "Huttiheita"
           :gyldigTil "2025-01-01"
-          :nyId "2"
+          :nyId 2
           :versjonsnummer "42"}
          (matrikkel-ws/pakk-ut-fylke
           (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
@@ -147,12 +147,12 @@
                                  [::dom/value "2"]]])))))
 
 (deftest pakk-ut-kommune-test
-  (is (= {:id "101"
+  (is (= {:id 101
           :nummer "0101"
           :navn "Huttiheita"
-          :fylke "1"
+          :fylke 1
           :gyldigTil "2025-01-01"
-          :nyId "102"
+          :nyId 102
           :senterpunkt {:opprinneligKoordinatsystem "25832"
                         "25832" {:x 1.0
                                  :y 2.0
@@ -182,7 +182,7 @@
              (update :senterpunkt select-keys [:opprinneligKoordinatsystem "25832"])))))
 
 (deftest pakk-ut-vei-test
-  (is (= {:id "123456789"
+  (is (= {:id 123456789
           :navn "Stien i lien"
           :kortNavn "Stien"
           :kommune "101"
@@ -215,7 +215,7 @@
                                         [::geometri/position
                                          [::geometri/x "541500.0"]
                                          [::geometri/y "6571000.0"]]]]))]
-    (is (= {:id "987654321"
+    (is (= {:id 987654321
             :versjonsnummer "42"
             :nummer "3"
             :bokstav "A"
@@ -229,7 +229,7 @@
 
 (deftest pakk-ut-postnummerområde
   (testing "Pakk ut postnummerområde"
-    (is (= {:kretsId "1234"
+    (is (= {:kretsId 1234
             :versjonsnummer "42"
             :postnummer "0987"
             :poststed "Oslo"

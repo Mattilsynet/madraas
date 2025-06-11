@@ -164,6 +164,9 @@
 (defn pakk-ut-verdi [xml]
   (xh/get-in-xml xml [::dom/value]))
 
+(defn pakk-ut-id [xml]
+  (some-> xml pakk-ut-verdi parse-long))
+
 (defn pakk-ut-representasjonspunkt [representasjonspunkt-xml]
   (let [koordinatsystem (-> (xh/get-first representasjonspunkt-xml
                                           [::geometri/koordinatsystemKodeId ::dom/value])
@@ -199,9 +202,9 @@
                               ::kommune/fylkesnavn :navn
                               ::kommune/gyldigTilDato :gyldigTil
                               ::kommune/nyFylkeId :nyId}
-                   {::dom/id pakk-ut-verdi
+                   {::dom/id pakk-ut-id
                     ::kommune/fylkesnavn normaliser-stedsnavn
-                    ::kommune/nyFylkeId pakk-ut-verdi
+                    ::kommune/nyFylkeId pakk-ut-id
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])}))
 
 (defn pakk-ut-kommune [xml-kommune]
@@ -213,10 +216,10 @@
                                 ::kommune/gyldigTilDato :gyldigTil
                                 ::kommune/nyKommuneId :nyId
                                 ::kommune/representasjonspunkt :senterpunkt}
-                   {::dom/id pakk-ut-verdi
+                   {::dom/id pakk-ut-id
                     ::kommune/kommunenavn normaliser-stedsnavn
-                    ::kommune/fylkeId pakk-ut-verdi
-                    ::kommune/nyKommuneId pakk-ut-verdi
+                    ::kommune/fylkeId pakk-ut-id
+                    ::kommune/nyKommuneId pakk-ut-id
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
                     ::kommune/representasjonspunkt pakk-ut-representasjonspunkt}))
 
@@ -226,7 +229,7 @@
                                          ::adresse/kretsnummer :postnummer
                                          ::adresse/kretsnavn :poststed
                                          ::adresse/kommuneIds :kommuner}
-                   {::dom/id pakk-ut-verdi
+                   {::dom/id pakk-ut-id
                     ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
                                             (cond-> kommuner (string? kommuner) vector))}))
@@ -237,7 +240,7 @@
                             ::adresse/kommuneId :kommune
                             ::adresse/adressenavn :navn
                             ::adresse/kortAdressenavn :kortNavn}
-                   {::dom/id pakk-ut-verdi
+                   {::dom/id pakk-ut-id
                     ::adresse/kommuneId pakk-ut-verdi}))
 
 (defn pakk-ut-vei-adresse [xml-vei-adresse]
@@ -248,12 +251,12 @@
                     ::adresse/bokstav :bokstav
                     ::adresse/vegId :vei
                     ::adresse/representasjonspunkt :posisjon}
-                   {::dom/id pakk-ut-verdi
+                   {::dom/id pakk-ut-id
                     ::adresse/vegId pakk-ut-verdi
                     ::adresse/representasjonspunkt pakk-ut-representasjonspunkt}))
 
 (defn last-ned [config domene-klasse fra-id]
-  (->> (find-ids-etter-id-request domene-klasse fra-id)
+  (->> (find-ids-etter-id-request config domene-klasse fra-id)
        (be-om-såpe config "NedlastningServiceWS")
        :body
        (pakk-ut-ider ::ned/findIdsEtterIdResponse)
