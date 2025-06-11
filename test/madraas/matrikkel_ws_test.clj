@@ -119,7 +119,7 @@
 (deftest pakk-ut-fylke-test
   (is (= {:fylke/id "1"
           :fylke/nummer "01"
-          :fylke/navn "HUTTIHEITA"
+          :fylke/navn "Huttiheita"
           :fylke/gyldig-til "2025-01-01"
           :fylke/ny-id "2"
           :versjon/nummer "42"}
@@ -139,7 +139,7 @@
 (deftest pakk-ut-kommune-test
   (is (= {:kommune/id "101"
           :kommune/nummer "0101"
-          :kommune/navn "HUTTIHEITA"
+          :kommune/navn "Huttiheita"
           :kommune/fylke "1"
           :kommune/gyldig-til "2025-01-01"
           :kommune/ny-id "102"
@@ -213,7 +213,7 @@
     (is (= {:postnummer/krets-id "1234"
             :versjon/nummer "42"
             :postnummer/nummer "0987"
-            :postnummer/poststed "OSLO"
+            :postnummer/poststed "Oslo"
             :postnummer/kommuner ["5678" "8765"]}
 
            (matrikkel-ws/pakk-ut-postnummerområde

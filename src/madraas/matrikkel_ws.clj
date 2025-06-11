@@ -67,6 +67,15 @@
    "13" "25835"
    "24" "4258"})
 
+(defn normaliser-stedsnavn [s]
+  (->> (for [ord (map str/lower-case (str/split s #" "))]
+         (if (#{"og" "i" "på"} ord)
+           ord
+           (->> (str/split ord #"-")
+                (map str/capitalize)
+                (str/join "-"))))
+       (str/join " ")))
+
 (defn xml-ns [alias]
   (str (get (ns-aliases 'madraas.matrikkel-ws) (symbol alias) alias)))
 
@@ -189,6 +198,7 @@
                               ::kommune/gyldigTilDato :fylke/gyldig-til
                               ::kommune/nyFylkeId :fylke/ny-id}
                    {::dom/id pakk-ut-verdi
+                    ::kommune/fylkesnavn normaliser-stedsnavn
                     ::kommune/nyFylkeId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])}))
 
@@ -202,6 +212,7 @@
                                 ::kommune/nyKommuneId :kommune/ny-id
                                 ::kommune/senterpunkt :kommune/senterpunkt}
                    {::dom/id pakk-ut-verdi
+                    ::kommune/kommunenavn normaliser-stedsnavn
                     ::kommune/fylkeId pakk-ut-verdi
                     ::kommune/nyKommuneId pakk-ut-verdi
                     ::kommune/gyldigTilDato #(xh/get-in-xml % [::dom/date])
@@ -215,6 +226,7 @@
                                          ::adresse/kretsnavn :postnummer/poststed
                                          ::adresse/kommuneIds :postnummer/kommuner}
                    {::dom/id pakk-ut-verdi
+                    ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
                                             (cond-> kommuner (string? kommuner) vector))}))
 
