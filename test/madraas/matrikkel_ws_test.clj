@@ -116,6 +116,15 @@
               xml/emit-str
               xml/parse-str)))))
 
+(deftest pakk-ut-entitet-test
+  (testing "Manglende data legges ikke inn som nil av pakk-ut-entitet"
+    (is (= {:navn "HAHA"}
+           (matrikkel-ws/pakk-ut-entitet
+            (xml/sexp-as-element [::dom/item [::kommune/fylkesnavn "HAHA"]])
+            {::kommune/fylkesnavn :navn
+             ::kommune/fylkesnummer :nummer}
+            {})))))
+
 (deftest pakk-ut-fylke-test
   (is (= {:fylke/id "1"
           :fylke/nummer "01"

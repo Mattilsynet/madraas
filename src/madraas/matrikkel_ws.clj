@@ -185,7 +185,9 @@
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
                    (xh/select-tags (keys tag-name-mappings)))
         transformed (reduce (fn [updated [tag update-fn]]
-                              (update updated tag update-fn))
+                              (if-let [val (update-fn (get updated tag))]
+                                (assoc updated tag val)
+                                (dissoc updated tag)))
                             shaved tag-transforms)]
     (set/rename-keys transformed tag-name-mappings)))
 
