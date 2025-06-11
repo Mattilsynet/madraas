@@ -77,7 +77,14 @@
                  [::example/attpåklatten "Test 789"]])
                (xh/get-in-xml [::example/barn])
                (xh/select-tags [::example/eldstemann
-                                ::example/attpåklatten]))))))
+                                ::example/attpåklatten])))))
+  (testing "Can select also on a single element"
+    (is (= {::example/the-thing "Test 123"}
+           (-> (xml/sexp-as-element
+                [::example/things
+                 [::example/the-thing "Test 123"]])
+               (xh/get-in-xml [::example/things])
+               (xh/select-tags [::example/the-thing]))))))
 
 (deftest get-first
   (testing "Get first element of type in XML"

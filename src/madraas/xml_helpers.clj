@@ -43,7 +43,8 @@
      (str local-prefix ":" type))))
 
 (defn select-tags [xml tags]
-  (let [tag-set (into #{} tags)]
+  (let [tag-set (into #{} tags)
+        xml (cond-> xml (associative? xml) vector)]
     (reduce (fn [res element]
               (cond-> res
                 (tag-set (:tag element))
