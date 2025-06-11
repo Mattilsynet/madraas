@@ -165,9 +165,8 @@
   (xh/get-in-xml xml [::dom/value]))
 
 (defn pakk-ut-representasjonspunkt [representasjonspunkt-xml]
-  (let [koordinatsystem (-> (xh/get-in-xml representasjonspunkt-xml
-                                           [::geometri/koordinatsystemKodeId ::dom/value])
-                            first
+  (let [koordinatsystem (-> (xh/get-first representasjonspunkt-xml
+                                          [::geometri/koordinatsystemKodeId ::dom/value])
                             matrikkel-id->epsg-kode)
         posisjon (-> representasjonspunkt-xml
                      (xh/get-in-xml [::geometri/position])
