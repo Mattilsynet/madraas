@@ -69,19 +69,22 @@
           (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))
         (into extra-config))))
 
-(defn last-ned [config type start-id]
-  (let [ch (a/chan 2000)
-        running? (atom true)]
-    (a/go
-      (loop [start start-id]
-        (tap> (str "Laster ned fra " start))
-        (let [ignore (get-in api-er [type :ignore])
-              entiteter (cond->> (matrikkel-ws/last-ned config type start)
-                          :then (map (get-in api-er [type :xf]))
-                          ignore (remove ignore))]
-          (a/onto-chan!! ch entiteter false)
-          (if (and @running? (seq entiteter))
-            (recur (apply max (map :id entiteter)))
-            (a/close! ch)))))
-    {:chan ch
-     :stop #(reset! running? false)}))
+(defn last-ned
+  ([config type start-id] (last-ned config type start-id :id))
+  ([config type start-id id-fn]
+   (let [ch (a/chan 2000)
+         running? (atom true)]
+     (a/go
+       (loop [start start-id]
+         (tap> (str "Laster ned fra " start))
+         (let [ignore (get-in api-er [type :ignore])
+               entiteter (cond->> (matrikkel-ws/last-ned config type start)
+                           :then (map (get-in api-er [type :xf]))
+                           ignore (remove ignore))]
+           (a/onto-chan!! ch entiteter false)
+           (if (and @running? (seq entiteter))
+             (recur (apply max (map id-fn entiteter)))
+             (a/close! ch)))))
+     {:chan ch
+      :stop #(reset! running? false)})))
+
