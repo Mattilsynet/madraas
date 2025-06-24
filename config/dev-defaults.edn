@@ -7,4 +7,7 @@
  :matrikkel/url "https://matrikkel.no/matrikkelapi/wsapi/v1"
  :matrikkel/username "mattilsynet_matrikkel"
  :matrikkel/password [:secret/dev "TlBZDnpHzf1y9Udv1zRGs4kZBVuSNJxBi0tkyhofkf+eJjGeMMpYqhiW+VszAu57M7YlUkBWLsgOz5MEB+Zb7ylgWEKz4dq0ONGEhXiIVZ+Dstq4nExDBe5O5yxWA6Jdx1o="]
+
+ ;; Posten
+ :posten/postnummer-url "https://www.bring.no/postnummerregister-ansi.txt"
  }
