@@ -22,6 +22,15 @@
                'store    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
 (comment
+
+  (set! *warn-on-reflection* true)
+
+  (let [ch (:chan (system/last-ned config "Fylke" 0))]
+    (synkroniser-til-nats nats-conn ch "fylker" :nummer))
+
+  (let [ch (:chan (system/last-ned config "Kommune" 0))]
+    (synkroniser-til-nats nats-conn ch "kommuner" kommune->subject))
+
   (def config
     (-> (system/init-config {:path "./config/dev-defaults.edn"})
         (config/verify-required-together
@@ -54,4 +63,9 @@
   (def postnummere
     (->> (matrikkel-ws/last-ned config "Postnummeromrade" 0)
          (map matrikkel-ws/pakk-ut-postnummerområde)))
+
+  (def fylke-jobb (system/last-ned-og-synkroniser config nats-conn "Fylke"))
+
+  (dissoc @fylke-jobb :data)
+
   )

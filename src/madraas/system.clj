@@ -95,13 +95,14 @@
         (into extra-config))))
 
 (defn last-ned
-  ([config type start-id] (last-ned config type start-id (get-in api-er [type :id-fn])))
-  ([config type start-id id-fn]
+  ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)}) config type start-id))
+  ([prosess config type start-id] (last-ned prosess config type start-id (get-in api-er [type :id-fn] :id)))
+  ([prosess config type start-id id-fn]
    (let [ch (a/chan 2000)
          running? (atom true)]
      (a/go
        (loop [start start-id]
-         (tap> (str "Laster ned fra " start))
+         (swap! prosess assoc :start-id start)
          (let [ignore (get-in api-er [type :ignore])
                entiteter (cond->> (matrikkel-ws/last-ned config type start)
                            :then (map (get-in api-er [type :xf]))
@@ -109,26 +110,39 @@
            (a/onto-chan!! ch entiteter false)
            (if (and @running? (seq entiteter))
              (recur (apply max (map id-fn entiteter)))
-             (a/close! ch)))))
+             (do
+               (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now))
+               (a/close! ch))))))
      {:chan ch
-      :stop #(reset! running? false)})))
+      :stop #(do
+               (swap! prosess assoc :nedlasting-avbrutt (java.time.Instant/now))
+               (reset! running? false))})))
 
-(defn synkroniser-til-nats [nats-conn ch bucket subject-fn]
+(defn synkroniser-til-nats [prosess nats-conn ch bucket subject-fn]
+  (swap! prosess assoc :synkronisert-til-nats 0)
   (a/go-loop []
-    (when-let [msg (a/<! ch)]
-      (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
-      (recur))))
+    (if-let [msg (a/<! ch)]
+      (do
+        (swap! prosess update :synkronisert-til-nats inc)
+        (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+        (recur))
+      (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now)))))
 
 (defn last-ned-og-synkroniser [config nats-conn type & [xf]]
   (let [{:keys [bucket subject-fn]} (get api-er type)
-        ch (:chan (last-ned config type 0))
-        ch (if xf
-             (a/map xf [ch])
-             ch)]
-    (synkroniser-til-nats nats-conn ch bucket subject-fn)))
+        prosess (atom {:startet (java.time.Instant/now)
+                       :data []})
+        {:keys [chan stop]} (last-ned prosess config type 0)
+        ch (a/map (fn [verdi]
+                    (let [verdi (cond-> verdi
+                                  xf xf)]
+                      (swap! prosess update :data conj verdi)
+                      verdi))
+                  [chan])]
+    (swap! prosess assoc :stop stop)
+    (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)
+    prosess))
 
 (comment
-
-
 
   )
