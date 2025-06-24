@@ -253,10 +253,14 @@
                     ::adresse/nummer :nummer
                     ::adresse/bokstav :bokstav
                     ::adresse/vegId :vei
-                    ::adresse/representasjonspunkt :posisjon}
+                    ::adresse/representasjonspunkt :posisjon
+                    ::adresse/kretsIds :kretser}
                    {::dom/id pakk-ut-id
                     ::adresse/vegId pakk-ut-verdi
-                    ::adresse/representasjonspunkt pakk-ut-representasjonspunkt}))
+                    ::adresse/representasjonspunkt pakk-ut-representasjonspunkt
+                    ::adresse/kretsIds #(some->>
+                                         (xh/get-in-xml % [::adresse/item ::dom/value])
+                                         (map parse-long))}))
 
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request config domene-klasse fra-id)
