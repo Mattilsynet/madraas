@@ -1,5 +1,6 @@
 (ns madraas.system
   (:require
+   [charred.api :as charred]
    [clojure.core.async :as a]
    [clojure.java.io :as io]
    [confair.config :as config]
@@ -12,14 +13,38 @@
   (:import
    (java.time Duration)))
 
+(def fylke->subject :nummer)
+
+(defn kommune->subject [{:keys [nummer]}]
+  (str (subs nummer 0 2) "." (subs nummer 2)))
+
+(def postnummerområde->subject :postnummer)
+
+(defn vei->subject [{:keys [kommune id]}]
+  (str (kommune->subject {:nummer kommune}) "." id))
+
+(defn veiadresse->subject [{:keys [kommune vei id]}]
+  (str (kommune->subject {:nummer kommune}) "." vei "." id))
+
 (def api-er
-  {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse}
+  {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse
+                 :bucket "adresser"
+                 :subject-fn veiadresse->subject}
    "Fylke" {:xf matrikkel-ws/pakk-ut-fylke
+            :bucket "fylker"
+            :subject-fn fylke->subject
             :ignore (comp #{"99"} :nummer)}
    "Kommune" {:xf matrikkel-ws/pakk-ut-kommune
+              :bucket "kommuner"
+              :subject-fn kommune->subject
               :ignore (comp #{"9999"} :nummer)}
-   "Veg" {:xf matrikkel-ws/pakk-ut-vei}
-   "Postnummeromrade" {:xf matrikkel-ws/pakk-ut-postnummerområde}})
+   "Veg" {:xf matrikkel-ws/pakk-ut-vei
+          :bucket "veier"
+          :subject-fn vei->subject}
+   "Postnummeromrade" {:xf matrikkel-ws/pakk-ut-postnummerområde
+                       :id-fn :kretsId
+                       :bucket "postnummere"
+                       :subject-fn postnummerområde->subject}})
 
 (defn select-keys-by-ns [m ns]
   (->> (keys m)
@@ -70,7 +95,7 @@
         (into extra-config))))
 
 (defn last-ned
-  ([config type start-id] (last-ned config type start-id :id))
+  ([config type start-id] (last-ned config type start-id (get-in api-er [type :id-fn])))
   ([config type start-id id-fn]
    (let [ch (a/chan 2000)
          running? (atom true)]
@@ -88,3 +113,22 @@
      {:chan ch
       :stop #(reset! running? false)})))
 
+(defn synkroniser-til-nats [nats-conn ch bucket subject-fn]
+  (a/go-loop []
+    (when-let [msg (a/<! ch)]
+      (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+      (recur))))
+
+(defn last-ned-og-synkroniser [config nats-conn type & [xf]]
+  (let [{:keys [bucket subject-fn]} (get api-er type)
+        ch (:chan (last-ned config type 0))
+        ch (if xf
+             (a/map xf [ch])
+             ch)]
+    (synkroniser-til-nats nats-conn ch bucket subject-fn)))
+
+(comment
+
+
+
+  )
