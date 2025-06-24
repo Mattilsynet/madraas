@@ -198,11 +198,11 @@
                                 [::adresse/kommuneId
                                  [::dom/value "101"]]])))))
 
-(deftest pakk-ut-vei-adresse-test
-  (let [adresse (matrikkel-ws/pakk-ut-vei-adresse
+(deftest pakk-ut-veiadresse-test
+  (let [adresse (matrikkel-ws/pakk-ut-veiadresse
                  (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
-                                                   ::xsi/type "a:VegAdresse"}
-                                       [::dom/id {::xsi/type "a:VegAdresseId"}
+                                                   ::xsi/type "a:Vegadresse"}
+                                       [::dom/id {::xsi/type "a:VegadresseId"}
                                         [::dom/value "987654321"]]
                                        [::dom/versjon "42"]
                                        [::adresse/vegId

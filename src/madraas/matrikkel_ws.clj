@@ -246,8 +246,8 @@
                    {::dom/id pakk-ut-id
                     ::adresse/kommuneId pakk-ut-verdi}))
 
-(defn pakk-ut-vei-adresse [xml-vei-adresse]
-  (pakk-ut-entitet xml-vei-adresse
+(defn pakk-ut-veiadresse [xml-veiadresse]
+  (pakk-ut-entitet xml-veiadresse
                    {::dom/id :id
                     ::dom/versjon :versjonsnummer
                     ::adresse/nummer :nummer

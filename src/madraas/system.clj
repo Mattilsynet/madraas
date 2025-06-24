@@ -13,7 +13,7 @@
    (java.time Duration)))
 
 (def api-er
-  {"Vegadresse" {:xf matrikkel-ws/pakk-ut-vei-adresse}
+  {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse}
    "Fylke" {:xf matrikkel-ws/pakk-ut-fylke
             :ignore (comp #{"99"} :nummer)}
    "Kommune" {:xf matrikkel-ws/pakk-ut-kommune
