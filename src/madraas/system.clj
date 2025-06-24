@@ -13,11 +13,13 @@
    (java.time Duration)))
 
 (def api-er
-  {"Vegadresse" matrikkel-ws/pakk-ut-vei-adresse
-   "Fylke" matrikkel-ws/pakk-ut-fylke
-   "Kommune" matrikkel-ws/pakk-ut-kommune
-   "Veg" matrikkel-ws/pakk-ut-vei
-   "Postnummeromrade" matrikkel-ws/pakk-ut-postnummerområde})
+  {"Vegadresse" {:xf matrikkel-ws/pakk-ut-vei-adresse}
+   "Fylke" {:xf matrikkel-ws/pakk-ut-fylke
+            :ignore (comp #{"99"} :nummer)}
+   "Kommune" {:xf matrikkel-ws/pakk-ut-kommune
+              :ignore (comp #{"9999"} :nummer)}
+   "Veg" {:xf matrikkel-ws/pakk-ut-vei}
+   "Postnummeromrade" {:xf matrikkel-ws/pakk-ut-postnummerområde}})
 
 (defn select-keys-by-ns [m ns]
   (->> (keys m)
@@ -73,8 +75,10 @@
     (a/go
       (loop [start start-id]
         (tap> (str "Laster ned fra " start))
-        (let [entiteter (->> (matrikkel-ws/last-ned config type start)
-                             (map (get api-er type)))]
+        (let [ignore (get-in api-er [type :ignore])
+              entiteter (cond->> (matrikkel-ws/last-ned config type start)
+                          :then (map (get-in api-er [type :xf]))
+                          ignore (remove ignore))]
           (a/onto-chan!! ch entiteter false)
           (if (and @running? (seq entiteter))
             (recur (apply max (map :id entiteter)))
