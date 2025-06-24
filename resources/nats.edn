@@ -22,6 +22,11 @@
   :nats.kv/replicas 3
   :nats.kv/max-history-per-key 10}
 
+ {:nats.kv/bucket-name "veier"
+  :nats.kv/description "Veier i Matrikkelen"
+  :nats.kv/replicas 3
+  :nats.kv/max-history-per-key 10}
+
  {:nats.stream/name "adresse-endringer"
   :nats.stream/subjects #{"endringer.adresse.>"}
   :nats.stream/description "Adresse-endringer i Matrikkelen"
