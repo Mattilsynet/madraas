@@ -42,7 +42,6 @@
           :bucket "veier"
           :subject-fn vei->subject}
    "Postnummeromrade" {:xf matrikkel-ws/pakk-ut-postnummerområde
-                       :id-fn :kretsId
                        :bucket "postnummere"
                        :subject-fn postnummerområde->subject}})
 
@@ -96,8 +95,7 @@
 
 (defn last-ned
   ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)}) config type start-id))
-  ([prosess config type start-id] (last-ned prosess config type start-id (get-in api-er [type :id-fn] :id)))
-  ([prosess config type start-id id-fn]
+  ([prosess config type start-id]
    (let [ch (a/chan 2000)
          running? (atom true)]
      (a/go
@@ -109,7 +107,7 @@
                            ignore (remove ignore))]
            (a/onto-chan!! ch entiteter false)
            (if (and @running? (seq entiteter))
-             (recur (apply max (map id-fn entiteter)))
+             (recur (apply max (map :id entiteter)))
              (do
                (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now))
                (a/close! ch))))))
