@@ -30,5 +30,5 @@
   (->> (http/get (:posten/postnummer-url config))
        :body
        parse-postnummer
-       (map (juxt :nummer :bruksområder))
+       (map (juxt :postnummer :bruksområder))
        (into {})))
