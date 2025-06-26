@@ -229,7 +229,7 @@
                     ::kommune/representasjonspunkt pakk-ut-representasjonspunkt}))
 
 (defn pakk-ut-postnummerområde [xml-postnummerområde]
-  (pakk-ut-entitet xml-postnummerområde {::dom/id :kretsId
+  (pakk-ut-entitet xml-postnummerområde {::dom/id :id
                                          ::dom/versjon :versjon
                                          ::adresse/kretsnummer :postnummer
                                          ::adresse/kretsnavn :poststed
@@ -258,7 +258,7 @@
                     ::adresse/representasjonspunkt :posisjon
                     ::adresse/kretsIds :kretser}
                    {::dom/id pakk-ut-id
-                    ::adresse/vegId pakk-ut-verdi
+                    ::adresse/vegId pakk-ut-id
                     ::adresse/representasjonspunkt pakk-ut-representasjonspunkt
                     ::adresse/kretsIds #(some->>
                                          (xh/get-in-xml % [::adresse/item ::dom/value])

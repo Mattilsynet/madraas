@@ -218,7 +218,7 @@
             :versjon "42"
             :nummer "3"
             :bokstav "A"
-            :vei "123456789"}
+            :vei 123456789}
            (select-keys adresse [:id :versjon :nummer :vei :bokstav])))
 
     (is (= "25832" (get-in adresse [:posisjon :opprinneligKoordinatsystem])))
@@ -228,7 +228,7 @@
 
 (deftest pakk-ut-postnummerområde
   (testing "Pakk ut postnummerområde"
-    (is (= {:kretsId 1234
+    (is (= {:id 1234
             :versjon "42"
             :postnummer "0987"
             :poststed "Oslo"
