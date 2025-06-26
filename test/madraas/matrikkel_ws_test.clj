@@ -132,7 +132,7 @@
           :navn "Huttiheita"
           :gyldigTil "2025-01-01"
           :nyId 2
-          :versjonsnummer "42"}
+          :versjon "42"}
          (matrikkel-ws/pakk-ut-fylke
           (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                                             ::xsi/type "k:Fylke"}
@@ -154,8 +154,8 @@
           :gyldigTil "2025-01-01"
           :nyId 102
           :senterpunkt {:opprinneligKoordinatsystem "25832"
-          :versjonsnummer "42"}
                         :koordinater {"25832" {:x 1.0 :y 2.0 :z 3.0}}}
+          :versjon "42"}
          (-> (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                                             ::xsi/type "k:Kommune"}
                                 [::dom/id {::xsi/type "k:KommuneId"}
@@ -185,7 +185,7 @@
           :navn "Stien i lien"
           :kortNavn "Stien"
           :kommune "101"
-          :versjonsnummer "42"}
+          :versjon "42"}
          (matrikkel-ws/pakk-ut-vei
           (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
                                             ::xsi/type "a:Veg"}
@@ -215,11 +215,11 @@
                                          [::geometri/x "541500.0"]
                                          [::geometri/y "6571000.0"]]]]))]
     (is (= {:id 987654321
-            :versjonsnummer "42"
+            :versjon "42"
             :nummer "3"
             :bokstav "A"
             :vei "123456789"}
-           (select-keys adresse [:id :versjonsnummer :nummer :vei :bokstav])))
+           (select-keys adresse [:id :versjon :nummer :vei :bokstav])))
 
     (is (= "25832" (get-in adresse [:posisjon :opprinneligKoordinatsystem])))
 
@@ -229,7 +229,7 @@
 (deftest pakk-ut-postnummerområde
   (testing "Pakk ut postnummerområde"
     (is (= {:kretsId 1234
-            :versjonsnummer "42"
+            :versjon "42"
             :postnummer "0987"
             :poststed "Oslo"
             :kommuner ["5678" "8765"]}

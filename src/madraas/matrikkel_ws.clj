@@ -202,7 +202,7 @@
 
 (defn pakk-ut-fylke [xml-fylke]
   (pakk-ut-entitet xml-fylke {::dom/id :id
-                              ::dom/versjon :versjonsnummer
+                              ::dom/versjon :versjon
                               ::kommune/fylkesnummer :nummer
                               ::kommune/fylkesnavn :navn
                               ::kommune/gyldigTilDato :gyldigTil
@@ -214,7 +214,7 @@
 
 (defn pakk-ut-kommune [xml-kommune]
   (pakk-ut-entitet xml-kommune {::dom/id :id
-                                ::dom/versjon :versjonsnummer
+                                ::dom/versjon :versjon
                                 ::kommune/kommunenummer :nummer
                                 ::kommune/fylkeId :fylke
                                 ::kommune/kommunenavn :navn
@@ -230,7 +230,7 @@
 
 (defn pakk-ut-postnummerområde [xml-postnummerområde]
   (pakk-ut-entitet xml-postnummerområde {::dom/id :kretsId
-                                         ::dom/versjon :versjonsnummer
+                                         ::dom/versjon :versjon
                                          ::adresse/kretsnummer :postnummer
                                          ::adresse/kretsnavn :poststed
                                          ::adresse/kommuneIds :kommuner}
@@ -241,7 +241,7 @@
 
 (defn pakk-ut-vei [xml-vei]
   (pakk-ut-entitet xml-vei {::dom/id :id
-                            ::dom/versjon :versjonsnummer
+                            ::dom/versjon :versjon
                             ::adresse/kommuneId :kommune
                             ::adresse/adressenavn :navn
                             ::adresse/kortAdressenavn :kortNavn}
@@ -251,7 +251,7 @@
 (defn pakk-ut-veiadresse [xml-veiadresse]
   (pakk-ut-entitet xml-veiadresse
                    {::dom/id :id
-                    ::dom/versjon :versjonsnummer
+                    ::dom/versjon :versjon
                     ::adresse/nummer :nummer
                     ::adresse/bokstav :bokstav
                     ::adresse/vegId :vei
