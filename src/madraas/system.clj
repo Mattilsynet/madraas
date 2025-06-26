@@ -94,48 +94,72 @@
         (into extra-config))))
 
 (defn last-ned
-  ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)}) config type start-id))
+  ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)
+                                           :lastet-ned 0})
+                                    config type start-id))
   ([prosess config type start-id]
    (let [ch (a/chan 2000)
          running? (atom true)]
      (a/go
-       (loop [start start-id]
-         (swap! prosess assoc :start-id start)
-         (let [ignore (get-in api-er [type :ignore])
-               entiteter (cond->> (matrikkel-ws/last-ned config type start)
-                           :then (map (get-in api-er [type :xf]))
-                           ignore (remove ignore))]
-           (a/onto-chan!! ch entiteter false)
-           (if (and @running? (seq entiteter))
-             (recur (apply max (map :id entiteter)))
-             (do
-               (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now))
-               (a/close! ch))))))
+       (try
+         (loop [start start-id]
+           (swap! prosess assoc :start-id start)
+           (let [ignore (get-in api-er [type :ignore])
+                 entiteter (cond->> (matrikkel-ws/last-ned config type start)
+                             :then (map (get-in api-er [type :xf]))
+                             ignore (remove ignore))]
+             (swap! prosess update :lastet-ned + (count entiteter))
+             (a/onto-chan!! ch entiteter false)
+             (if (and @running? (seq entiteter))
+               (recur (apply max (map :id entiteter)))
+               (do
+                 (when @running?
+                   (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
+                 (a/close! ch)))))
+         (catch Exception e
+           ((:stop @prosess))
+           (swap! prosess assoc :feil e))))
      {:chan ch
       :stop #(do
-               (swap! prosess assoc :nedlasting-avbrutt (java.time.Instant/now))
+               (when @running?
+                 (swap! prosess assoc :nedlasting-avbrutt (java.time.Instant/now)))
                (reset! running? false))})))
 
 (defn synkroniser-til-nats [prosess nats-conn ch bucket subject-fn]
   (swap! prosess assoc :synkronisert-til-nats 0)
-  (a/go-loop []
-    (if-let [msg (a/<! ch)]
-      (do
-        (swap! prosess update :synkronisert-til-nats inc)
-        (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
-        (recur))
-      (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now)))))
+  (a/go
+    (try
+      (loop []
+        (if-let [msg (a/<! ch)]
+          (do
+            (swap! prosess update :synkronisert-til-nats inc)
+            (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+            (recur))
+          (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
+      (catch Exception e
+        ((:stop @prosess))
+        (swap! prosess assoc
+               :synkronisering-avbrutt (java.time.Instant/now)
+               :feil e)))))
 
-(defn last-ned-og-synkroniser [config nats-conn type & [xf]]
+(defn ^{:indent 3} last-ned-og-synkroniser [config nats-conn type & [xf synkron?]]
   (let [{:keys [bucket subject-fn]} (get api-er type)
         prosess (atom {:startet (java.time.Instant/now)
+                       :lastet-ned 0
                        :data []})
         {:keys [chan stop]} (last-ned prosess config type 0)
         ch (a/map (fn [verdi]
-                    (let [verdi (cond-> verdi
-                                  xf xf)]
-                      (swap! prosess update :data conj verdi)
-                      verdi))
+                    (try
+                      (let [verdi (cond-> verdi
+                                    xf xf)]
+                        (when synkron?
+                          (swap! prosess update :data conj verdi))
+                        verdi)
+                      (catch Exception e
+                        ((:stop @prosess))
+                        (swap! prosess assoc
+                               :synkronisering-avbrutt (java.time.Instant/now)
+                               :feil e))))
                   [chan])]
     (swap! prosess assoc :stop stop)
     (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)
