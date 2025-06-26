@@ -183,7 +183,6 @@
 (deftest pakk-ut-vei-test
   (is (= {:id 123456789
           :navn "Stien i lien"
-          :kortNavn "Stien"
           :kommune "0101"
           :versjon "42"}
          (matrikkel-ws/pakk-ut-vei

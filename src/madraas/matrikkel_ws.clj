@@ -244,8 +244,7 @@
   (pakk-ut-entitet xml-vei {::dom/id :id
                             ::dom/versjon :versjon
                             ::adresse/kommuneId :kommune
-                            ::adresse/adressenavn :navn
-                            ::adresse/kortAdressenavn :kortNavn}
+                            ::adresse/adressenavn :navn}
                    {::dom/id pakk-ut-id
                     ::adresse/kommuneId #(format "%04d" (parse-long (xh/get-in-xml % [::dom/value])))}))
 
