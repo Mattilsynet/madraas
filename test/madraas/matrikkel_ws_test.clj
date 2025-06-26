@@ -154,10 +154,8 @@
           :gyldigTil "2025-01-01"
           :nyId 102
           :senterpunkt {:opprinneligKoordinatsystem "25832"
-                        "25832" {:x 1.0
-                                 :y 2.0
-                                 :z 3.0}}
           :versjonsnummer "42"}
+                        :koordinater {"25832" {:x 1.0 :y 2.0 :z 3.0}}}
          (-> (xml/sexp-as-element [::dom/item {"xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                                             ::xsi/type "k:Kommune"}
                                 [::dom/id {::xsi/type "k:KommuneId"}
@@ -179,7 +177,8 @@
                                          [::geometri/y "2.0"]
                                          [::geometri/z "3.0"]]]])
              matrikkel-ws/pakk-ut-kommune
-             (update :senterpunkt select-keys [:opprinneligKoordinatsystem "25832"])))))
+             (update :senterpunkt select-keys [:opprinneligKoordinatsystem :koordinater])
+             (update-in [:senterpunkt :koordinater] select-keys ["25832"])))))
 
 (deftest pakk-ut-vei-test
   (is (= {:id 123456789
@@ -225,7 +224,7 @@
     (is (= "25832" (get-in adresse [:posisjon :opprinneligKoordinatsystem])))
 
     (is (= {:x 541500.0, :y 6571000.0 :z 0.0}
-           (get-in adresse [:posisjon "25832"])))))
+           (get-in adresse [:posisjon :koordinater "25832"])))))
 
 (deftest pakk-ut-postnummerområde
   (testing "Pakk ut postnummerområde"

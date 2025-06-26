@@ -183,10 +183,12 @@
                      (->> (map (fn [[k v]] [k (parse-double v)]))
                           (into {})))]
     (when koordinatsystem
-      (into {:opprinneligKoordinatsystem koordinatsystem}
+      {:opprinneligKoordinatsystem koordinatsystem
+       :koordinater
+       (->> (keys geo/koordinatsystemer)
             (map (fn [til-system]
-                   [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)])
-                 (keys geo/koordinatsystemer))))))
+                   [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)]))
+            (into {}))})))
 
 (defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
