@@ -5,6 +5,7 @@
    [clojure.java.io :as io]
    [confair.config :as config]
    [madraas.matrikkel-ws :as matrikkel-ws]
+   [madraas.postnummer :as postnummer]
    [nats.core :as nats]
    [nats.kv :as kv]
    [nats.stream :as stream]
@@ -165,6 +166,61 @@
     (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)
     prosess))
 
+(defn vent-på-synkronisering [prosess]
+  (let [ch (a/chan)]
+    (add-watch prosess ::synkronisering
+     (fn [_ _ _ proc]
+       (when (:synkronisering-ferdig proc)
+         (remove-watch prosess ::synkronisering)
+         (a/put! ch (:data proc))
+         (a/close! ch))))
+    (a/<!! ch)))
+
+(defn berik-veiadresser [krets->postnummer vei->kommune]
+  (fn [adresse]
+    (let [postnummer (->> (:kretser adresse)
+                          (map @krets->postnummer)
+                          (filter some?)
+                          first)
+          kommune (-> adresse :vei (@vei->kommune))]
+      (-> adresse
+          (assoc :postnummer postnummer
+                 :kommune kommune)
+          (dissoc :kretser)))))
+
+(defn synkroniser [config nats-conn]
+  (let [fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
+        kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
+        postnummer->bruksområder (postnummer/last-ned-postnummere config)
+        postnummer-jobb (last-ned-og-synkroniser config nats-conn "Postnummeromrade"
+                          (fn [postnummer]
+                            (assoc postnummer :bruksområder (postnummer->bruksområder (:postnummer postnummer))))
+                          :synkron)
+        vei-jobb (last-ned-og-synkroniser config nats-conn "Veg" nil :synkron)
+
+        krets->postnummer (future (->> (vent-på-synkronisering postnummer-jobb)
+                                       (map (juxt :id :postnummer))
+                                       (into {})))
+        vei->kommune (future (->> (vent-på-synkronisering vei-jobb)
+                                  (map (juxt :id :kommune))
+                                  (into {})))
+        veiadresse-jobb (last-ned-og-synkroniser config nats-conn "Vegadresse"
+                          (berik-veiadresser krets->postnummer vei->kommune))]
+    {:fylke-jobb fylke-jobb
+     :kommune-jobb kommune-jobb
+     :postnummer-jobb postnummer-jobb
+     :vei-jobb vei-jobb
+     :veiadresse-jobb veiadresse-jobb
+     :krets->postnummer krets->postnummer
+     :vei->kommune vei->kommune
+     :stop (fn []
+             ((:stop @fylke-jobb))
+             ((:stop @kommune-jobb))
+             ((:stop @postnummer-jobb))
+             ((:stop @vei-jobb))
+             ((:stop @veiadresse-jobb)))}))
+
 (comment
 
-  )
+
+)
