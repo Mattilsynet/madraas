@@ -21,6 +21,24 @@
                'ned      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
                'store    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
 
+(defn estimer-tidsbruk [jobb forventet-totalantall]
+  (let [startet (:startet jobb)
+        nå (java.time.Instant/now)
+        synkronisert-til-nats (:synkronisert-til-nats jobb)
+        forventet-ferdig (->> (java.time.Duration/between startet nå)
+                              .toSeconds
+                              (quot synkronisert-til-nats)
+                              (quot forventet-totalantall)
+                              (.plusSeconds startet))
+        tid-igjen (java.time.Duration/between nå forventet-ferdig)]
+    {:startet startet
+     :forventet-ferdig forventet-ferdig
+     :tid-igjen (format "%02d:%02d:%02d"
+                        (.toHoursPart tid-igjen)
+                        (.toMinutesPart tid-igjen)
+                        (.toSecondsPart tid-igjen))
+     :synkronisert-til-nats synkronisert-til-nats}))
+
 (comment
 
   (set! *warn-on-reflection* true)
@@ -67,5 +85,11 @@
   (def fylke-jobb (system/last-ned-og-synkroniser config nats-conn "Fylke"))
 
   (dissoc @fylke-jobb :data)
+  (def synk (system/synkroniser config nats-conn))
+
+  @(:veiadresse-jobb synk)
+
+  (estimer-tidsbruk @(:veiadresse-jobb synk) 2500000)
+
 
   )
