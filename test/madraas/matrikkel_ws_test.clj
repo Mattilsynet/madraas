@@ -184,7 +184,7 @@
   (is (= {:id 123456789
           :navn "Stien i lien"
           :kortNavn "Stien"
-          :kommune "101"
+          :kommune "0101"
           :versjon "42"}
          (matrikkel-ws/pakk-ut-vei
           (xml/sexp-as-element [::dom/item {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
@@ -240,7 +240,7 @@
                                   [::dom/id {::xsi/type "a:PostnummeromradeId"}
                                    [::dom/value "1234"]]
                                   [::dom/versjon "42"]
-                                  [::adresse/kretsnummer "0987"]
+                                  [::adresse/kretsnummer "987"]
                                   [::adresse/kretsnavn "OSLO"]
                                   [::adresse/kommuneIds
                                    [::kommune/item

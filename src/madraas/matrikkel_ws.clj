@@ -235,6 +235,7 @@
                                          ::adresse/kretsnavn :poststed
                                          ::adresse/kommuneIds :kommuner}
                    {::dom/id pakk-ut-id
+                    ::adresse/kretsnummer #(format "%04d" (parse-long %))
                     ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
                                             (cond-> kommuner (string? kommuner) vector))}))
@@ -246,7 +247,7 @@
                             ::adresse/adressenavn :navn
                             ::adresse/kortAdressenavn :kortNavn}
                    {::dom/id pakk-ut-id
-                    ::adresse/kommuneId pakk-ut-verdi}))
+                    ::adresse/kommuneId #(format "%04d" (parse-long (xh/get-in-xml % [::dom/value])))}))
 
 (defn pakk-ut-veiadresse [xml-veiadresse]
   (pakk-ut-entitet xml-veiadresse
