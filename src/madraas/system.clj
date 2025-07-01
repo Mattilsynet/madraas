@@ -172,7 +172,8 @@
   (let [ch (a/chan 2000)]
     (add-watch prosess ::synkronisering
      (fn [_ _ _ proc]
-       (when (:synkronisering-ferdig proc)
+       (when (or (:feil proc)
+                 (:synkronisering-ferdig proc))
          (remove-watch prosess ::synkronisering)
          (a/put! ch (:data proc))
          (a/close! ch))))
@@ -207,7 +208,19 @@
                                   (map (juxt :id :kommune))
                                   (into {})))
         veiadresse-jobb (last-ned-og-synkroniser config nats-conn "Vegadresse"
-                          (berik-veiadresser krets->postnummer vei->kommune))]
+                          (berik-veiadresser krets->postnummer vei->kommune))
+        jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
+        stop #(doseq [j jobber]
+                ((:stop @j))
+                (remove-watch j ::synkroniseringsfeil))]
+
+    (doseq [jobb [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]]
+      (add-watch jobb ::synkroniseringsfeil
+                 (fn [_ _ _ jobb]
+                   (when-let [feil (:feil jobb)]
+                     (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
+                     (stop)))))
+
     {:fylke-jobb fylke-jobb
      :kommune-jobb kommune-jobb
      :postnummer-jobb postnummer-jobb
@@ -215,12 +228,7 @@
      :veiadresse-jobb veiadresse-jobb
      :krets->postnummer krets->postnummer
      :vei->kommune vei->kommune
-     :stop (fn []
-             ((:stop @fylke-jobb))
-             ((:stop @kommune-jobb))
-             ((:stop @postnummer-jobb))
-             ((:stop @vei-jobb))
-             ((:stop @veiadresse-jobb)))}))
+     :stop stop}))
 
 (comment
 
