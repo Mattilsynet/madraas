@@ -110,7 +110,9 @@
                              :then (map (get-in api-er [type :xf]))
                              ignore (remove ignore))]
              (swap! prosess update :lastet-ned + (count entiteter))
-             (a/onto-chan!! ch entiteter false)
+
+             (doseq [e entiteter] (a/>! ch e))
+
              (if (and @running? (seq entiteter))
                (recur (apply max (map :id entiteter)))
                (do
@@ -161,13 +163,13 @@
                         (swap! prosess assoc
                                :synkronisering-avbrutt (java.time.Instant/now)
                                :feil e))))
-                  [chan])]
+                  [chan] 2000)]
     (swap! prosess assoc :stop stop)
     (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)
     prosess))
 
 (defn vent-på-synkronisering [prosess]
-  (let [ch (a/chan)]
+  (let [ch (a/chan 2000)]
     (add-watch prosess ::synkronisering
      (fn [_ _ _ proc]
        (when (:synkronisering-ferdig proc)
