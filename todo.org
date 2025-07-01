@@ -1,4 +1,14 @@
 * Mattilsynets ADResse As A Service
 ** TODO Implementere watch for KV i clj-nats
 https://javadoc.io/static/io.nats/jnats/2.21.1/io/nats/client/KeyValue.html#watch-java.util.List-io.nats.client.api.KeyValueWatcher-io.nats.client.api.KeyValueWatchOption...-
-**
+** TODO Synkronisere med matrikkelen
+*** DONE Importer fylker
+*** DONE Importer kommuner
+*** DONE Importer postnummere
+*** DONE Importer veier
+*** DONE Importer veiadresser
+*** TODO Importer matrikkeladresser
+*** TODO Synkroniser fra endringslogg
+** TODO Gjør HTTP-forespørsler mer robuste
+*** Prøv på nytt ved nettverksfeil
+*** Prøv på nytt ved andre feil enn 500, 401 og 403
