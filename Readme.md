@@ -1,4 +1,4 @@
-# MADRAAS: Mattilsynets ADResse As A Service
+# MADRaaS: Mattilsynets AdresseDataRegister as a Service
 
 En tjeneste som legger adresser fra Matrikkelen på NATS, til glede for alle
 Mattilsynets produktteam.
