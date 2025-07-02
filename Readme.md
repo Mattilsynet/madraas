@@ -18,3 +18,15 @@ Det kommer vel noen av dem etterhvert også:
 ```sh
 bin/kaocha --watch
 ```
+
+## Kjøre en fullstendig import
+
+I utvikling:
+```sh
+clj -X:dev:synkroniser
+```
+
+I produksjon:
+```sh
+clj -X:prod:synkroniser
+```

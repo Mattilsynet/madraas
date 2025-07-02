@@ -2,6 +2,7 @@
   (:require
    [charred.api :as charred]
    [clojure.core.async :as a]
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
    [confair.config :as config]
    [madraas.matrikkel-ws :as matrikkel-ws]
@@ -13,6 +14,13 @@
    [open-telemetry.tracing :as tracing])
   (:import
    (java.time Duration)))
+
+(def jobber
+  {:fylke-jobb "fylker"
+   :kommune-jobb "kommuner"
+   :postnummer-jobb "postnummere"
+   :vei-jobb "veier"
+   :veiadresse-jobb "veiadresser"})
 
 (def fylke->subject :nummer)
 
@@ -50,6 +58,9 @@
   (->> (keys m)
        (filter (comp #{ns} namespace))
        (select-keys m)))
+
+(defn avsluttet? [proc]
+  (seq (select-keys proc [:feil :synkronisering-ferdig :nedlasting-avbrutt])))
 
 (defn init-connection [{:nats/keys [stream-overrides] :as config} resources]
   (let [conn (nats/connect config)
@@ -172,10 +183,10 @@
   (let [ch (a/chan 2000)]
     (add-watch prosess ::synkronisering
      (fn [_ _ _ proc]
-       (when (or (:feil proc)
-                 (:synkronisering-ferdig proc))
+       (when (avsluttet? proc)
          (remove-watch prosess ::synkronisering)
-         (a/put! ch (:data proc))
+         (when (:synkronisering-ferdig proc)
+           (a/put! ch (:data proc)))
          (a/close! ch))))
     (a/<!! ch)))
 
@@ -230,7 +241,44 @@
      :vei->kommune vei->kommune
      :stop stop}))
 
-(comment
+(defn ^:export run [opts]
+  (assert (:config-file opts))
+  (add-tap #(if (string? %)
+              (println %)
+              (apply println %)))
+  (tap> "Starter synkronisering")
+  (let [config (-> (init-config {:path (:config-file opts)})
+                   (config/verify-required-together
+                    #{#{:matrikkel/url
+                        :matrikkel/username
+                        :matrikkel/password}})
+                   (config/mask-config))
+        nats-conn (init-connection config (edn/read-string
+                                           {:readers {'time/duration Duration/parse}}
+                                           (slurp "./resources/nats.edn")))
+        synk (synkroniser config nats-conn)]
+    (doseq [[jobb type] jobber]
+      (add-watch (jobb synk) ::fremdrift
+                 (fn [_ ref old-status status]
+                   (when (avsluttet? status)
+                     (remove-watch ref ::fremdrift))
 
+                   (when (every? (comp avsluttet? deref synk) (keys jobber))
+                     (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0)))
+
+                   (cond (:feil status)
+                         (tap> ["Synkronisering av" type "mislyktes"])
+
+                         (:synkronisering-ferdig status)
+                         (tap> ["Synkronisering av" (:synkronisert-til-nats status)
+                                type "fullført"])
+
+                         (and (= 0 (mod (:synkronisert-til-nats status) 10000))
+                              (not= (:synkronisert-til-nats status)
+                                    (:synkronisert-til-nats old-status)))
+                         (tap> [(:synkronisert-til-nats status)
+                                type "synkronisert til NATS"])))))))
+
+(comment
 
 )

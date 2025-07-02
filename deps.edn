@@ -11,11 +11,14 @@
         no.cjohansen/clj-nats {:mvn/version "0.2025.04.09"}
         org.osgeo/proj4j {:mvn/version "0.1.0"}}
  :aliases
- {:dev {:extra-paths ["dev" "test"]
+ {:dev {:exec-args {:config-file "./config/dev-defaults.edn"}
+        :extra-paths ["dev" "test"]
         :extra-deps {kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
                      lambdaisland/kaocha {:mvn/version "1.87.1366"}}
         :jvm-opts ["-Dclojure.spec.check-asserts=true"]}
   :build {:extra-paths ["build"]
           :extra-deps {badigeon/badigeon {:git/url "https://github.com/EwenG/badigeon.git"
                                           :sha "f4bcca58536f49c10a5ea87b662f33ccf83338ce"}}
-          :jvm-opts ["-Dclojure.spec.compile-asserts=false"]}}}
+          :jvm-opts ["-Dclojure.spec.compile-asserts=false"]}
+  :prod {:exec-args {:config-file "./config/prod-config.edn"}}
+  :synkroniser {:exec-fn madraas.system/run}}}
