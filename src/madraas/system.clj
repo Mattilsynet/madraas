@@ -32,8 +32,8 @@
 (defn vei->subject [{:keys [kommune id]}]
   (str (kommune->subject {:nummer kommune}) "." id))
 
-(defn veiadresse->subject [{:keys [kommune vei id]}]
-  (str (kommune->subject {:nummer kommune}) "." vei "." id))
+(defn veiadresse->subject [{:keys [kommune postnummer vei id]}]
+  (str (kommune->subject {:nummer kommune}) "." postnummer "." vei "." id))
 
 (def api-er
   {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse
