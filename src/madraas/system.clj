@@ -188,6 +188,7 @@
         synk-ch (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)]
     (swap! prosess assoc :stop
            (fn []
+             (swap! prosess assoc :stop (constantly nil))
              (tap> (str "Draining all chans for " type))
              (stop)
              (tap> "Drain mapping chan")
