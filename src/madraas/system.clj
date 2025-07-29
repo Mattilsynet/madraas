@@ -103,6 +103,12 @@
       (string? (:nats.stream/request-timeout (:nats/jet-stream-options config)))
       (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))))
 
+(defn drain! [ch]
+  (a/close! ch)
+  (a/<!! (a/go-loop []
+           (when (a/<! ch)
+             (recur)))))
+
 (defn last-ned
   ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)
                                            :lastet-ned 0})
@@ -135,7 +141,8 @@
       :stop #(do
                (when @running?
                  (swap! prosess assoc :nedlasting-avbrutt (java.time.Instant/now)))
-               (reset! running? false))})))
+               (reset! running? false)
+               (drain! ch))})))
 
 (defn synkroniser-til-nats [prosess nats-conn ch bucket subject-fn]
   (swap! prosess assoc :synkronisert-til-nats 0)
@@ -172,9 +179,16 @@
                         (swap! prosess assoc
                                :synkronisering-avbrutt (java.time.Instant/now)
                                :feil e))))
-                  [chan] 2000)]
-    (swap! prosess assoc :stop stop)
-    (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)
+                  [chan] 2000)
+        synk-ch (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)]
+    (swap! prosess assoc :stop
+           (fn []
+             (tap> (str "Draining all chans for " type))
+             (stop)
+             (tap> "Drain mapping chan")
+             (drain! ch)
+             (tap> "Draining syncing chan")
+             (drain! synk-ch)))
     prosess))
 
 (defn vent-på-synkronisering [prosess]
