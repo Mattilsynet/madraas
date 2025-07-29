@@ -99,11 +99,9 @@
                  :else
                  (throw (ex-info "No config found"
                                  {:path path :env-var env-var})))]
-    (-> config
-        (cond->
-          (string? (:nats.stream/request-timeout (:nats/jet-stream-options config)))
-          (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))
-        (into extra-config))))
+    (cond-> (into config extra-config)
+      (string? (:nats.stream/request-timeout (:nats/jet-stream-options config)))
+      (update-in [:nats/jet-stream-options :nats.stream/request-timeout] Duration/parse))))
 
 (defn last-ned
   ([config type start-id] (last-ned (atom {:startet (java.time.Instant/now)
