@@ -147,21 +147,25 @@
 (defn synkroniser-til-nats [prosess nats-conn ch bucket subject-fn]
   (swap! prosess assoc :synkronisert-til-nats 0)
   (a/go
-    (try
-      (loop []
-        (if-let [msg (a/<! ch)]
-          (do
-            (swap! prosess update :synkronisert-til-nats inc)
-            (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
-            (recur))
-          (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
-      (catch Exception e
-        ((:stop @prosess))
-        (swap! prosess assoc
-               :synkronisering-avbrutt (java.time.Instant/now)
-               :feil e)))))
+    (let [last-msg (atom nil)]
+      (try
+        (loop []
+          (if-let [msg (a/<! ch)]
+            (do
+              (reset! last-msg msg)
+              (swap! prosess update :synkronisert-til-nats inc)
+              (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+              (recur))
+            (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
+        (catch Exception e
+          (tap> ["Failed to write" (:id @last-msg) "to" bucket])
+          ((:stop @prosess))
+          (swap! prosess assoc
+                 :synkronisering-avbrutt (java.time.Instant/now)
+                 :feil e))))))
 
 (defn ^{:indent 3} last-ned-og-synkroniser [config nats-conn type & [xf synkron?]]
+  (tap> (str "Laster ned " type))
   (let [{:keys [bucket subject-fn]} (get api-er type)
         prosess (atom {:startet (java.time.Instant/now)
                        :lastet-ned 0
@@ -175,6 +179,7 @@
                           (swap! prosess update :data conj verdi))
                         verdi)
                       (catch Exception e
+                        (tap> ["Failed to map" type (:id verdi)])
                         ((:stop @prosess))
                         (swap! prosess assoc
                                :synkronisering-avbrutt (java.time.Instant/now)
