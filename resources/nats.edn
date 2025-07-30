@@ -2,7 +2,11 @@
 ;; allerede finnes opprettes. Utover dette blir de ikke migrert på noe vis. Skal
 ;; de endres må det manuelt arbeid til. Vurder å lage en ny strøm heller enn å
 ;; endre på en gammel.
-[{:nats.kv/bucket-name "adresser"
+[{:nats.kv/bucket-name "madraas"
+  :nats.kv/description "Fremgang i synkroniseringen"
+  :nats.kv/replicas 3}
+
+ {:nats.kv/bucket-name "adresser"
   :nats.kv/description "Adresser i Matrikkelen"
   :nats.kv/replicas 3
   :nats.kv/max-history-per-key 10}
