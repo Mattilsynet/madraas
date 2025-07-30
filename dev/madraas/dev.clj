@@ -7,7 +7,8 @@
    [madraas.geo :as geo]
    [madraas.matrikkel-ws :as matrikkel-ws]
    [madraas.system :as system]
-   [madraas.xml-helpers :as xh])
+   [madraas.xml-helpers :as xh]
+   [nats.kv :as kv])
   (:import
    (io.nats.client.api KeyValueEntry KeyValueWatcher KeyValueWatchOption)
    (java.time Duration)))
