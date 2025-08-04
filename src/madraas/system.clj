@@ -4,8 +4,10 @@
    [clojure.core.async :as a]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
+   [clojure.string :as str]
    [confair.config :as config]
    [madraas.matrikkel-ws :as matrikkel-ws]
+   [madraas.nats :as m-nats]
    [madraas.postnummer :as postnummer]
    [nats.core :as nats]
    [nats.kv :as kv]
@@ -144,10 +146,18 @@
                (reset! running? false)
                (drain! ch))})))
 
-(defn synkroniser-til-nats [prosess nats-conn ch bucket subject-fn]
+(defn siste-synkroniserte-subject [type]
+  (-> type str/lower-case (str ".siste-synkroniserte")))
+
+(defn siste-synkroniserte-id [nats-conn type]
+  (or (kv/get-value nats-conn "madraas" (siste-synkroniserte-subject type) nil)
+      0))
+
+(defn synkroniser-til-nats [prosess nats-conn ch type]
   (swap! prosess assoc :synkronisert-til-nats 0)
   (a/go
-    (let [last-msg (atom nil)]
+    (let [last-msg (atom nil)
+          {:keys [bucket subject-fn]} (api-er type)]
       (try
         (loop []
           (if-let [msg (a/<! ch)]
@@ -155,6 +165,7 @@
               (reset! last-msg msg)
               (swap! prosess update :synkronisert-til-nats inc)
               (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+              (kv/put nats-conn "madraas" (siste-synkroniserte-subject type) (:id msg))
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Exception e
@@ -166,11 +177,14 @@
 
 (defn ^{:indent 3} last-ned-og-synkroniser [config nats-conn type & [xf synkron?]]
   (tap> (str "Laster ned " type))
-  (let [{:keys [bucket subject-fn]} (get api-er type)
+  (let [bucket (get-in api-er [type :bucket])
         prosess (atom {:startet (java.time.Instant/now)
                        :lastet-ned 0
-                       :data []})
-        {:keys [chan stop]} (last-ned prosess config type 0)
+                       :data (if synkron?
+                               (m-nats/read-all nats-conn bucket)
+                               [])})
+        start-id (siste-synkroniserte-id nats-conn type)
+        {:keys [chan stop]} (last-ned prosess config type start-id)
         ch (a/map (fn [verdi]
                     (try
                       (let [verdi (cond-> verdi
@@ -185,7 +199,8 @@
                                :synkronisering-avbrutt (java.time.Instant/now)
                                :feil e))))
                   [chan] 2000)
-        synk-ch (synkroniser-til-nats prosess nats-conn ch bucket subject-fn)]
+        synk-ch (synkroniser-til-nats prosess nats-conn ch type)]
+    (tap> ["Startet synkronisering av" (str/lower-case type) "fra" start-id])
     (swap! prosess assoc :stop
            (fn []
              (swap! prosess assoc :stop (constantly nil))
