@@ -35,10 +35,10 @@
    (watch conn bucket-name subjects nil watcher watch-opts))
   ([conn bucket-name subjects from-rev {:keys [watch end-of-data consumer-name-prefix]} watch-opts]
    (let [subjects (cond
-                    (instance? java.util.List subjects) subjects
-                    (string? subjects) [subjects]
-                    (seqable? subjects) (vec subjects)
                     (nil? subjects) [">"]
+                    (string? subjects) [subjects]
+                    (instance? java.util.List subjects) subjects
+                    (seqable? subjects) (vec subjects)
                     :else subjects)]
      (.watch (kv/kv-management conn bucket-name)
              ^java.util.List subjects
