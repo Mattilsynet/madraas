@@ -63,8 +63,8 @@
                    [:nats.kv.watch-option/ignore-delete])]
     (a/<!!
      (a/go-loop [m (a/<! ch)
-                 ms {}]
+                 ms []]
        (if m
-         (recur (a/<! ch) (assoc ms (:id m) m))
+         (recur (a/<! ch) (conj ms m))
          (do (.close ^java.lang.AutoCloseable sub)
              ms))))))
