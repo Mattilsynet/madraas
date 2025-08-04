@@ -175,42 +175,45 @@
                  :synkronisering-avbrutt (java.time.Instant/now)
                  :feil e))))))
 
-(defn ^{:indent 3} last-ned-og-synkroniser [config nats-conn type & [xf synkron?]]
-  (tap> (str "Laster ned " type))
-  (let [bucket (get-in api-er [type :bucket])
-        prosess (atom {:startet (java.time.Instant/now)
-                       :lastet-ned 0
-                       :data (if synkron?
-                               (m-nats/read-all nats-conn bucket)
-                               [])})
-        start-id (siste-synkroniserte-id nats-conn type)
-        {:keys [chan stop]} (last-ned prosess config type start-id)
-        ch (a/map (fn [verdi]
-                    (try
-                      (let [verdi (cond-> verdi
-                                    xf xf)]
-                        (when synkron?
-                          (swap! prosess update :data conj verdi))
-                        verdi)
-                      (catch Exception e
-                        (tap> ["Failed to map" type (:id verdi)])
-                        ((:stop @prosess))
-                        (swap! prosess assoc
-                               :synkronisering-avbrutt (java.time.Instant/now)
-                               :feil e))))
-                  [chan] 2000)
-        synk-ch (synkroniser-til-nats prosess nats-conn ch type)]
-    (tap> ["Startet synkronisering av" (str/lower-case type) "fra" start-id])
-    (swap! prosess assoc :stop
-           (fn []
-             (swap! prosess assoc :stop (constantly nil))
-             (tap> (str "Draining all chans for " type))
-             (stop)
-             (tap> "Drain mapping chan")
-             (drain! ch)
-             (tap> "Draining syncing chan")
-             (drain! synk-ch)))
-    prosess))
+(defn ^{:indent 3} last-ned-og-synkroniser
+  ([config nats-conn type]
+   (last-ned-og-synkroniser config nats-conn type nil))
+  ([config nats-conn type {:keys [xf synkron?]}]
+   (tap> (str "Laster ned " type))
+   (let [bucket (get-in api-er [type :bucket])
+         prosess (atom {:startet (java.time.Instant/now)
+                        :lastet-ned 0
+                        :data (if synkron?
+                                (m-nats/read-all nats-conn bucket)
+                                [])})
+         start-id (siste-synkroniserte-id nats-conn type)
+         {:keys [chan stop]} (last-ned prosess config type start-id)
+         ch (a/map (fn [verdi]
+                     (try
+                       (let [verdi (cond-> verdi
+                                     xf xf)]
+                         (when synkron?
+                           (swap! prosess update :data conj verdi))
+                         verdi)
+                       (catch Exception e
+                         (tap> ["Failed to map" type (:id verdi)])
+                         ((:stop @prosess))
+                         (swap! prosess assoc
+                                :synkronisering-avbrutt (java.time.Instant/now)
+                                :feil e))))
+                   [chan] 2000)
+         synk-ch (synkroniser-til-nats prosess nats-conn ch type)]
+     (tap> ["Startet synkronisering av" (str/lower-case type) "fra" start-id])
+     (swap! prosess assoc :stop
+            (fn []
+              (swap! prosess assoc :stop (constantly nil))
+              (tap> (str "Draining all chans for " type))
+              (stop)
+              (tap> "Drain mapping chan")
+              (drain! ch)
+              (tap> "Draining syncing chan")
+              (drain! synk-ch)))
+     prosess)))
 
 (defn vent-på-synkronisering [prosess]
   (let [ch (a/chan 2000)]
@@ -240,10 +243,9 @@
         kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
         postnummer->bruksområder (postnummer/last-ned-postnummere config)
         postnummer-jobb (last-ned-og-synkroniser config nats-conn "Postnummeromrade"
-                          (fn [postnummer]
-                            (assoc postnummer :bruksområder (postnummer->bruksområder (:postnummer postnummer))))
-                          :synkron)
-        vei-jobb (last-ned-og-synkroniser config nats-conn "Veg" nil :synkron)
+                          {:xf #(assoc % :bruksområder (postnummer->bruksområder (:postnummer %)))
+                           :synkron? true})
+        vei-jobb (last-ned-og-synkroniser config nats-conn "Veg" {:synkron? true})
 
         krets->postnummer (future (->> (vent-på-synkronisering postnummer-jobb)
                                        (map (juxt :id :postnummer))
@@ -252,7 +254,7 @@
                                   (map (juxt :id :kommune))
                                   (into {})))
         veiadresse-jobb (last-ned-og-synkroniser config nats-conn "Vegadresse"
-                          (berik-veiadresser krets->postnummer vei->kommune))
+                          {:xf (berik-veiadresser krets->postnummer vei->kommune)})
         jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
         stop #(doseq [j jobber]
                 ((:stop @j))
