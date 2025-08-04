@@ -125,6 +125,12 @@
              [::dom/value id]]))
     (matrikkel-context 'store)]))
 
+(defn find-siste-endring-id-request []
+  (soap-envelope
+   {}
+   [::endring/findSisteEndringId
+    (matrikkel-context 'endring)]))
+
 (defn find-endringer-request [domene-klasse fra-id]
   (soap-envelope
    (domene-klasse->ns-aliases domene-klasse)
@@ -273,6 +279,13 @@
        (be-om-såpe config "StoreServiceWS")
        :body
        (pakk-ut-svar ::store/getObjectsResponse)))
+
+(defn hent-siste-endring-id [config]
+  (->> (find-siste-endring-id-request)
+       (be-om-såpe config "EndringsloggServiceWS")
+       :body
+       (pakk-ut-svar ::endring/findSisteEndringIdResponse)
+       pakk-ut-id))
 
 (comment
   (xml/emit-str (xml/aggregate-xmlns (xml/sexp-as-element (find-ids-etter-id-request 15 "Adresse"))))
