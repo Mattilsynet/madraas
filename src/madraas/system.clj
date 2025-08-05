@@ -305,6 +305,11 @@
                    (cond (:feil status)
                          (tap> ["Synkronisering av" type "mislyktes"])
 
+                         (:nedlasting-avbrutt status)
+                         (tap> ["Nedlasting avbrutt etter synkronisering av"
+                                (:synkronisert-til-nats status)
+                                type "fullført"])
+
                          (:synkronisering-ferdig status)
                          (tap> ["Synkronisering av" (:synkronisert-til-nats status)
                                 type "fullført"])
