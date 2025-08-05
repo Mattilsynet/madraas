@@ -158,6 +158,7 @@
   (swap! prosess assoc :synkronisert-til-nats 0)
   (a/go
     (let [last-msg (atom nil)
+          siste-synkroniserte-subject (siste-synkroniserte-subject type)
           {:keys [bucket subject-fn]} (api-er type)]
       (try
         (loop []
@@ -165,7 +166,7 @@
             (do
               (reset! last-msg msg)
               (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
-              (kv/put nats-conn "madraas" (siste-synkroniserte-subject type) (:id msg))
+              (kv/put nats-conn "madraas" siste-synkroniserte-subject (:id msg))
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
