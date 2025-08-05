@@ -123,15 +123,16 @@
          (loop [start start-id]
            (swap! prosess assoc :start-id start)
            (let [ignore (get-in api-er [type :ignore])
-                 entiteter (cond->> (matrikkel-ws/last-ned config type start)
-                             :then (map (get-in api-er [type :xf]))
+                 entiteter (cond->> (->> (matrikkel-ws/last-ned config type start)
+                                         (map (get-in api-er [type :xf]))
+                                         (sort-by :id))
                              ignore (remove ignore))]
              (swap! prosess update :lastet-ned + (count entiteter))
 
              (doseq [e entiteter] (a/>! ch e))
 
              (if (and @running? (seq entiteter))
-               (recur (apply max (map :id entiteter)))
+               (recur (:id (last entiteter)))
                (do
                  (when @running?
                    (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
@@ -163,9 +164,9 @@
           (if-let [msg (a/<! ch)]
             (do
               (reset! last-msg msg)
-              (swap! prosess update :synkronisert-til-nats inc)
               (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
               (kv/put nats-conn "madraas" (siste-synkroniserte-subject type) (:id msg))
+              (swap! prosess update :synkronisert-til-nats inc)
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Exception e
