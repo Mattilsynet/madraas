@@ -20,4 +20,6 @@ COPY deps.edn /app/
 
 WORKDIR /app
 
+RUN clojure -X:deps prep
+
 CMD exec clojure -X:prod:synkroniser
