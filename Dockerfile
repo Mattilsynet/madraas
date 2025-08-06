@@ -19,4 +19,4 @@ COPY config/prod-config.edn deps.edn /app/
 
 WORKDIR /app
 
-CMD exec clojure -M:prod:synkroniser
+ENTRYPOINT ["clojure", "-M:prod:synkroniser"]
