@@ -5,3 +5,4 @@ config/prod-secret.txt
 /.cpcache/
 /.lsp/
 /.nrepl-port
+/**/.terraform*
