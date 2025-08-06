@@ -15,7 +15,8 @@ apk del curl
 
 COPY src /app/src
 COPY resources /app/resources
-COPY config/prod-config.edn deps.edn /app/
+COPY config/prod-config.edn /app/config/
+COPY deps.edn /app/
 
 WORKDIR /app
 
