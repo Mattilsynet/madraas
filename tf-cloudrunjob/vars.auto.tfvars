@@ -1,2 +1,2 @@
-region = "europe-west1"
+region = "europe-north1"
 project_id = "madraas-8cec"

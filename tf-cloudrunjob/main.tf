@@ -4,7 +4,6 @@ module "cloudrunjob" {
   name              = "madraas-import"
   project_id        = var.project_id
   container_image   = "alpine:latest"
-  container_command = ["/bin/sh"]
   max_retries       = 1
   ignore_image      = true
   location          = var.region
