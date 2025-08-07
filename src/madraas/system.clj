@@ -116,6 +116,7 @@
                                            :lastet-ned 0})
                                     config type start-id))
   ([prosess config type start-id]
+   (tap> ["Laster ned" type])
    (let [ch (a/chan 2000)
          running? (atom true)]
      (a/go
@@ -181,7 +182,6 @@
   ([config nats-conn type]
    (last-ned-og-synkroniser config nats-conn type nil))
   ([config nats-conn type {:keys [xf synkron?]}]
-   (tap> (str "Laster ned " type))
    (let [bucket (get-in api-er [type :bucket])
          prosess (atom {:startet (java.time.Instant/now)
                         :lastet-ned 0
@@ -319,7 +319,9 @@
                               (not= (:synkronisert-til-nats status)
                                     (:synkronisert-til-nats old-status)))
                          (tap> [(:synkronisert-til-nats status)
-                                type "synkronisert til NATS"])))))))
+                                type "synkronisert til NATS"]))))
+      ;; En liten ping til alle watches, sånn at umiddelbart ferdige prosesser ikke henger systemet
+      (swap! (jobb synk) identity))))
 
 (comment
 
