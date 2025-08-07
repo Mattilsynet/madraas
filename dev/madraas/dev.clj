@@ -26,18 +26,25 @@
   (let [startet (:startet jobb)
         nå (java.time.Instant/now)
         synkronisert-til-nats (:synkronisert-til-nats jobb)
-        forventet-ferdig (->> (java.time.Duration/between startet nå)
-                              .toSeconds
-                              (quot synkronisert-til-nats)
-                              (quot forventet-totalantall)
-                              (.plusSeconds startet))
-        tid-igjen (java.time.Duration/between nå forventet-ferdig)]
+        har-startet-synkronisering? (< 0 synkronisert-til-nats)
+        forventet-ferdig (if har-startet-synkronisering?
+                           (->> (java.time.Duration/between startet nå)
+                                .toSeconds
+                                (quot synkronisert-til-nats)
+                                (quot forventet-totalantall)
+                                (.plusSeconds startet))
+                           "Aldri")
+        tid-igjen (if har-startet-synkronisering?
+                    (java.time.Duration/between nå forventet-ferdig)
+                    "Evig")]
     {:startet startet
      :forventet-ferdig forventet-ferdig
-     :tid-igjen (format "%02d:%02d:%02d"
-                        (.toHoursPart tid-igjen)
-                        (.toMinutesPart tid-igjen)
-                        (.toSecondsPart tid-igjen))
+     :tid-igjen (if har-startet-synkronisering?
+                  (format "%02d:%02d:%02d"
+                          (.toHoursPart tid-igjen)
+                          (.toMinutesPart tid-igjen)
+                          (.toSecondsPart tid-igjen))
+                  tid-igjen)
      :synkronisert-til-nats synkronisert-til-nats}))
 
 (comment
