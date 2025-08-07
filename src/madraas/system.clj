@@ -65,7 +65,7 @@
   (seq (select-keys proc [:feil :synkronisering-ferdig :nedlasting-avbrutt])))
 
 (defn init-connection [{:nats/keys [stream-overrides] :as config} resources]
-  (let [conn (nats/connect config)
+  (let [conn (nats/connect config {:jet-stream-options (:nats/jet-stream-options config)})
         existing (stream/get-stream-names conn)]
     (doseq [nats-resource resources]
       (try
