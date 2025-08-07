@@ -2,7 +2,7 @@
 {;; NATS
  :nats.core/server-url "tls://connect.nats.mattilsynet.io:4222"
  :nats.core/connection-name "madraas-prod"
- :nats.core/credentials ""
+ :nats.core/credentials [:secret/prod "TlBZDlbZNg9Nuq/YXlmC1GeRj8BCIffpxUBhOZ8gC/E10dl/GTSwZt0+iCWZSb9WImQJUxTcjAH+QSMPN6yLYAE+2/69EGyEns4+hGJAsMz9BsNjzZDQnPS3H7L6iXknmukMAKkk"]
 
  ;; Matrikkelen
  :matrikkel/url "https://matrikkel.no/matrikkelapi/wsapi/v1"
