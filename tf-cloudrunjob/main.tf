@@ -9,16 +9,24 @@ module "cloudrunjob" {
   task_count        = 1
   ignore_image      = true
   location          = var.region
+
   env_secret_vars = [
     {
       name = "MADRAAS_CONFIG_SECRET"
       secret_id = google_secret_manager_secret.prod_config_secret.secret_id
     }
   ]
+
+  container_limits = {
+    "cpu": "2.0",
+    "memory": "4096Mi"
+  }
+
   scheduler = {
     name      = "madraas-import-scheduler"
     schedule  = "0 3 * * *" # Kjør litt utpå natta
   }
+
   # !! NB: All the secrets mentioned above (mounted or exposed as env variables MUST be listed in accessible_secrets variable)
   accessible_secrets = [google_secret_manager_secret.prod_config_secret.secret_id]
 }
