@@ -4,6 +4,7 @@ module "cloudrunjob" {
   name              = "madraas-import"
   project_id        = var.project_id
   container_image   = "alpine:latest"
+  timeout           = "7200s"
   max_retries       = 1
   task_count        = 1
   ignore_image      = true
