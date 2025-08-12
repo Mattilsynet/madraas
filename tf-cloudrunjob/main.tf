@@ -5,6 +5,7 @@ module "cloudrunjob" {
   project_id        = var.project_id
   container_image   = "alpine:latest"
   max_retries       = 1
+  task_count        = 1
   ignore_image      = true
   location          = var.region
   env_secret_vars = [
