@@ -74,9 +74,9 @@
     (->> (matrikkel-ws/last-ned config "Veg" 6300000000)
          (map matrikkel-ws/pakk-ut-vei)))
 
-  (def vei-adresser
+  (def veiadresser
     (->> (matrikkel-ws/last-ned config "Vegadresse" 0)
-         (map matrikkel-ws/pakk-ut-vei-adresse)))
+         (map matrikkel-ws/pakk-ut-veiadresse)))
 
   (def fylker
     (->> (matrikkel-ws/last-ned config "Fylke" 0)
