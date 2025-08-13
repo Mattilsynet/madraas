@@ -70,7 +70,7 @@ jobs:
           workload_identity_provider: projects/799884623953/locations/global/workloadIdentityPools/gh-actions/providers/github
           service_account: artifacts-wi-sa-github-actions@artifacts-352708.iam.gserviceaccount.com
       - name: Log in to Google Artifact Registry (GAR)
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: europe-north1-docker.pkg.dev/artifacts-352708
           username: 'oauth2accesstoken'
