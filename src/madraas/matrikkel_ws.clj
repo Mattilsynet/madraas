@@ -18,6 +18,7 @@
  'd-endr   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/endringslogg"
  'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
  'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
+ 'krets  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/krets"
 
  ;; Tjeneste-navnerom
  'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
@@ -26,7 +27,8 @@
 
 (def domene-ns
   {"adresse" ["Adresse" "Krets" "Matrikkeladresse" "Postnummeromrade" "Veg" "Vegadresse"]
-   "kommune" ["Kommune" "Fylke"]})
+   "kommune" ["Kommune" "Fylke"]
+   "krets" ["Krets"]})
 
 ;; Forferdelig navn på denne funksjonen. Gjør vondt i sjela.
 (defn ->domene-klasse-map
@@ -197,9 +199,10 @@
                    [til-system (geo/konverter-koordinater koordinatsystem til-system posisjon)]))
             (into {}))})))
 
-(defn pakk-ut-entitet [xml tag-name-mappings tag-transforms]
+(defn pakk-ut-entitet [xml tag-name-mappings tag-transforms & {:keys [include-type?]}]
   (let [shaved (-> (xh/get-in-xml xml [::dom/item])
-                   (xh/select-tags (keys tag-name-mappings)))
+                   (xh/select-tags (keys tag-name-mappings))
+                   (cond-> include-type? (assoc :xsi-type (xh/xsi-type xml uri->ns-alias))))
         transformed (reduce (fn [updated [tag update-fn]]
                               (if-let [val (update-fn (get updated tag))]
                                 (assoc updated tag val)
@@ -245,7 +248,8 @@
                     ::adresse/kretsnummer #(format "%04d" (parse-long %))
                     ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
-                                            (cond-> kommuner (string? kommuner) vector))}))
+                                            (cond-> kommuner (string? kommuner) vector))}
+                   {:include-type? true}))
 
 (defn pakk-ut-vei [xml-vei]
   (pakk-ut-entitet xml-vei {::dom/id :id
