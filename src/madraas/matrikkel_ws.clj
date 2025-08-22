@@ -137,10 +137,10 @@
    [::endring/findEndringer
     [::endring/id
      [::dom/value (or fra-id "0")]]
-    [::endring/domainKlasse domene-klasse]
+    [::endring/domainklasse domene-klasse]
     [::endring/filter]
-    [::endring/returnerBobler "Aldri"]
-    [::endring/maksAntall 10000]
+    [::endring/returnerBobler "Alltid"]
+    [::endring/maksAntall 1000]
     (matrikkel-context 'endring)]))
 
 (defn be-om-såpe [config tjeneste forespørsel]

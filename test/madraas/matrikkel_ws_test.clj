@@ -76,10 +76,10 @@
            [::endring/findEndringer
             [::endring/id
              [::dom/value 1138]]
-            [::endring/domainKlasse "Veg"]
+            [::endring/domainklasse "Veg"]
             [::endring/filter]
-            [::endring/returnerBobler "Aldri"]
-            [::endring/maksAntall 10000]
+            [::endring/returnerBobler "Alltid"]
+            [::endring/maksAntall 1000]
             (matrikkel-ws/matrikkel-context 'endring)]]]
          (matrikkel-ws/find-endringer-request "Veg" 1138))))
 
