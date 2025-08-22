@@ -15,6 +15,7 @@
  ;; Domene-navnerom som brukes for typene til Kartverket
  'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
  'adresse  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+ 'd-endr   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/endringslogg"
  'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
  'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
 
@@ -270,6 +271,20 @@
                                          (xh/get-in-xml % [::adresse/item ::dom/value])
                                          (map parse-long))}))
 
+(defn pakk-ut-endring [xml]
+  (-> (xh/get-in-xml xml [::d-endr/item])
+      (xh/select-tags [::dom/id
+                       ::d-endr/endringstype
+                       ::d-endr/endretBubbleId
+                       ::d-endr/endringstidspunkt])
+      (set/rename-keys {::dom/id :id
+                        ::d-endr/endringstype :endringstype
+                        ::d-endr/endretBubbleId :entitet
+                        ::d-endr/endringstidspunkt :endringstidspunkt})
+      (update :endringstidspunkt xh/get-in-xml [::dom/timestamp])
+      (update :entitet pakk-ut-id)
+      (update :id pakk-ut-id)))
+
 (defn last-ned [config domene-klasse fra-id]
   (->> (find-ids-etter-id-request config domene-klasse fra-id)
        (be-om-såpe config "NedlastningServiceWS")
@@ -286,6 +301,32 @@
        :body
        (pakk-ut-svar ::endring/findSisteEndringIdResponse)
        pakk-ut-id))
+
+(defn endrede-entiteter [endringer]
+  (xh/get-in-xml endringer [::d-endr/objects]))
+
+(defn endringslogg [endringer]
+  (->> (xh/get-in-xml endringer [::d-endr/endringList])
+       (map pakk-ut-endring)))
+
+(defn endringsmetadata [endringer]
+  (-> (xh/select-tags endringer [::d-endr/alleEndringerFunnet ::d-endr/sisteEndringIdProsessert])
+      (set/rename-keys {::d-endr/alleEndringerFunnet :ferdig?
+                        ::d-endr/sisteEndringIdProsessert :siste-id})
+      (update :ferdig? parse-boolean)
+      (update :siste-id pakk-ut-id)))
+
+(defn hent-endringer [config type siste-endring-id]
+  (let [svar (->> (find-endringer-request type siste-endring-id)
+                  (be-om-såpe config "EndringsloggServiceWS")
+                  :body
+                  (pakk-ut-svar ::endring/findEndringerResponse))
+        meta (endringsmetadata svar)
+        logg (endringslogg svar)
+        entiteter (endrede-entiteter svar)]
+    (assoc meta
+           :endringer logg
+           :entiteter entiteter)))
 
 (comment
   (xml/emit-str (xml/aggregate-xmlns (xml/sexp-as-element (find-ids-etter-id-request 15 "Adresse"))))

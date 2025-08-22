@@ -8,6 +8,7 @@
                'soapenv  "http://schemas.xmlsoap.org/soap/envelope/"
                'dom      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain"
                'adresse  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
+               'd-endr   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/endringslogg"
                'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
                'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
                'endring  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
@@ -261,3 +262,17 @@
                                    [::adresse/kommuneIds
                                     [::kommune/item
                                      [::dom/value "5678"]]]])))))))
+
+(deftest pakk-ut-endring-test
+  (testing "Kan pakke ut metadata om endringer"
+    (is (= {:id 42,
+            :endringstype "Oppdatering",
+            :entitet 1234,
+            :endringstidspunkt "2025-08-22T12:00:00.000Z"}
+         (matrikkel-ws/pakk-ut-endring
+          (xml/sexp-as-element [::d-endr/item
+                                [::dom/id [::dom/value "42"]]
+                                [::d-endr/endringstype "Oppdatering"]
+                                [::d-endr/endretBubbleId [::dom/value "1234"]]
+                                [::d-endr/endringstidspunkt
+                                 [::dom/timestamp "2025-08-22T12:00:00.000Z"]]]))))))
