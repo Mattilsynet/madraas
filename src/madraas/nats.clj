@@ -20,3 +20,16 @@
          (recur (a/<! ch) (conj ms m))
          (do (.close ^java.lang.AutoCloseable sub)
              ms))))))
+
+(defn find-first [conn bucket subject]
+  (let [ch (a/promise-chan)
+        sub (kv/watch conn bucket subject
+                      {:watch #(-> %
+                                   :nats.kv.entry/value
+                                   (charred/read-json {:key-fn keyword})
+                                   (->> (a/>!! ch)))
+                       :end-of-data #(a/close! ch)}
+                      [:nats.kv.watch-option/ignore-delete])
+        ret (a/<!! ch)]
+    (.close ^java.lang.AutoCloseable sub)
+    ret))
