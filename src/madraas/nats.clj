@@ -4,9 +4,9 @@
    [clojure.core.async :as a]
    [nats.kv :as kv]))
 
-(defn read-all [conn bucket-name]
+(defn read-all [conn bucket]
   (let [ch (a/chan 1000)
-        sub (kv/watch conn bucket-name
+        sub (kv/watch conn bucket
                       {:watch #(-> %
                                    :nats.kv.entry/value
                                    (charred/read-json {:key-fn keyword})
