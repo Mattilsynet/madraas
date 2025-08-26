@@ -140,6 +140,7 @@
                  (a/close! ch)))))
          (catch Exception e
            ((:stop @prosess))
+           (tap> ["Feil ved nedlasting av" type ":" e])
            (swap! prosess assoc :feil e))))
      {:chan ch
       :stop #(do
@@ -172,7 +173,7 @@
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Exception e
-          (tap> ["Failed to write" (:id @last-msg) "to" bucket])
+          (tap> ["Klarte ikke å skrive" (:id @last-msg) "av" type "til NATS" bucket ":" e])
           ((:stop @prosess))
           (swap! prosess assoc
                  :synkronisering-avbrutt (java.time.Instant/now)
@@ -198,7 +199,7 @@
                            (swap! prosess update :data conj verdi))
                          verdi)
                        (catch Exception e
-                         (tap> ["Failed to map" type (:id verdi)])
+                         (tap> ["Klarte ikke å mappe" type (:id verdi) ":" e])
                          ((:stop @prosess))
                          (swap! prosess assoc
                                 :synkronisering-avbrutt (java.time.Instant/now)
