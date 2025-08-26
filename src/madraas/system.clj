@@ -22,7 +22,12 @@
    :kommune-jobb "kommuner"
    :postnummer-jobb "postnummere"
    :vei-jobb "veier"
-   :veiadresse-jobb "veiadresser"})
+   :veiadresse-jobb "veiadresser"
+   :fylke-endringer "fylkesendringer"
+   :kommune-endringer "kommuneendringer"
+   :postnummer-endringer "postnummerendringer"
+   :vei-endringer "veiendringer"
+   :veiadresse-endringer "veiadresseendringer"})
 
 (def fylke->subject :nummer)
 
@@ -40,7 +45,8 @@
 (def api-er
   {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse
                  :bucket "adresser"
-                 :subject-fn veiadresse->subject}
+                 :subject-fn veiadresse->subject
+                 :search-prefix "*.*.*.*."}
    "Fylke" {:xf matrikkel-ws/pakk-ut-fylke
             :bucket "fylker"
             :subject-fn fylke->subject
@@ -51,10 +57,13 @@
               :ignore (comp #{"9999"} :nummer)}
    "Veg" {:xf matrikkel-ws/pakk-ut-vei
           :bucket "veier"
-          :subject-fn vei->subject}
+          :subject-fn vei->subject
+          :search-prefix "*.*."}
    "Postnummeromrade" {:xf matrikkel-ws/pakk-ut-postnummerområde
+                       :endringstype "Krets"
                        :bucket "postnummere"
-                       :subject-fn postnummerområde->subject}})
+                       :subject-fn postnummerområde->subject
+                       :ignore #(not= "adresse:Postnummeromrade" (:xsi-type %))}})
 
 (defn select-keys-by-ns [m ns]
   (->> (keys m)
