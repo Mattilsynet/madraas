@@ -250,6 +250,10 @@
                  :kommune kommune)
           (dissoc :kretser)))))
 
+(defn siste-endring-id [config nats-conn]
+  (or (:nats.kv.entry/value (kv/get nats-conn :madraas/siste-endring-id))
+      (matrikkel-ws/hent-siste-endring-id config)))
+
 (defn synkroniser [config nats-conn]
   (let [fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
         kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
