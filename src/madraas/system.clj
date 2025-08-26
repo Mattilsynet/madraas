@@ -254,15 +254,23 @@
   (or (:nats.kv.entry/value (kv/get nats-conn :madraas/siste-endring-id))
       (matrikkel-ws/hent-siste-endring-id config)))
 
+
+(defn berik-postnummer
+  ([postnummer->bruksområder]
+   (partial berik-postnummer postnummer->bruksområder))
+  ([postnummer->bruksområder postnummerområde]
+   (-> postnummerområde
+       (assoc :bruksområder (postnummer->bruksområder (:postnummer postnummerområde)))
+       (dissoc :xsi-type))))
+
 (defn synkroniser [config nats-conn]
   (let [fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
         kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
-        postnummer->bruksområder (postnummer/last-ned-postnummere config)
+        berik-postnummer (berik-postnummer (postnummer/last-ned-postnummere config))
         postnummer-jobb (last-ned-og-synkroniser config nats-conn "Postnummeromrade"
-                          {:xf #(assoc % :bruksområder (postnummer->bruksområder (:postnummer %)))
+                          {:xf berik-postnummer
                            :synkron? true})
         vei-jobb (last-ned-og-synkroniser config nats-conn "Veg" {:synkron? true})
-
         krets->postnummer (future (->> (vent-på-synkronisering postnummer-jobb)
                                        (map (juxt :id :postnummer))
                                        (into {})))
