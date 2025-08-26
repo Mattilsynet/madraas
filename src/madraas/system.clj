@@ -478,7 +478,9 @@
                      (remove-watch ref ::fremdrift))
 
                    (when (every? (comp avsluttet? deref synk) (keys jobber))
-                     (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0)))
+                     (future
+                       (Thread/sleep 1000)
+                       (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0))))
 
                    (cond (:feil status)
                          (tap> ["Synkronisering av" type "mislyktes"])
