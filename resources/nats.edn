@@ -31,8 +31,12 @@
   :nats.kv/replicas 3
   :nats.kv/max-history-per-key 10}
 
- {:nats.stream/name "adresse-endringer"
-  :nats.stream/subjects #{"endringer.adresse.>"}
+ {:nats.stream/name "endringer"
+  :nats.stream/subjects #{"endringer.adresser.>"
+                          "endringer.fylker.>"
+                          "endringer.kommuner.>"
+                          "endringer.postnummere.>"
+                          "endringer.veier.>"}
   :nats.stream/description "Adresse-endringer i Matrikkelen"
   :nats.stream/replicas 3
   :nats.stream/retention-policy :nats.retention-policy/limits
