@@ -11,7 +11,6 @@
                'd-endr   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/endringslogg"
                'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
                'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
-               'krets    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/krets"
                'endring  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
                'ned      "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/nedlastning"
                'store    "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/store")
@@ -55,8 +54,6 @@
   (is (= [::soapenv/Envelope
           {"xmlns:adresse"
            "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
-           "xmlns:krets"
-           "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/krets"
            "xmlns:kommune"
            "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"}
           [::soapenv/Header]
@@ -111,13 +108,12 @@
                                     [::soapenv/Body
                                      [::ned/findIdsEtterIdResponse
                                       [::ned/return
-                                       {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"
-                                        "xmlns:k" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/krets"}
+                                       {"xmlns:a" "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/adresse"}
                                        [::dom/item {::xsi/type "a:VegId"}
                                         [::dom/value "1"]]
                                        [::dom/item {::xsi/type "a:AdresseId"}
                                         [::dom/value "2"]]
-                                       [::dom/item {::xsi/type "k:KretsId"}
+                                       [::dom/item {::xsi/type "a:KretsId"}
                                         [::dom/value "3"]]]]]])
               xml/emit-str
               xml/parse-str)))))

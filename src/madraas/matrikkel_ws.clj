@@ -18,7 +18,6 @@
  'd-endr   "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/endringslogg"
  'geometri "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/geometri"
  'kommune  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/kommune"
- 'krets  "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/domain/krets"
 
  ;; Tjeneste-navnerom
  'endring "http://matrikkel.statkart.no/matrikkelapi/wsapi/v1/service/endringslogg"
@@ -27,8 +26,7 @@
 
 (def domene-ns
   {"adresse" ["Adresse" "Krets" "Matrikkeladresse" "Postnummeromrade" "Veg" "Vegadresse"]
-   "kommune" ["Kommune" "Fylke"]
-   "krets" ["Krets"]})
+   "kommune" ["Kommune" "Fylke"]})
 
 ;; Forferdelig navn på denne funksjonen. Gjør vondt i sjela.
 (defn ->domene-klasse-map
