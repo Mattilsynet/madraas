@@ -254,6 +254,116 @@
   (or (:nats.kv.entry/value (kv/get nats-conn :madraas/siste-endring-id))
       (matrikkel-ws/hent-siste-endring-id config)))
 
+(defn hent-endringer
+  ([config nats-conn type start-id] (hent-endringer (atom {:startet (java.time.Instant/now)
+                                                           :lastet-ned 0})
+                                          config nats-conn type start-id))
+  ([prosess config nats-conn type start-id]
+   (tap> ["Laster ned endringer av" type "fra" start-id])
+   (let [ch (a/chan 2000)
+         running? (atom true)
+         {:keys [bucket search-prefix]} (api-er type)]
+     (a/go
+       (try
+         (loop [start start-id]
+           (swap! prosess assoc :start-id start)
+           (tap> ["Laster ned fra" start])
+           (let [{:keys [xf ignore endringstype]} (api-er type)
+                 {:keys [endringer entiteter ferdig? siste-id]}
+                 (matrikkel-ws/hent-endringer config (or endringstype type) start)
+                 entiteter (cond->> (map xf entiteter)
+                             ignore (remove ignore)
+                             :always (reduce #(assoc %1 (:id %2) %2) {}))
+                 endringer (->> endringer
+                                (map (fn [endring]
+                                       (assoc endring :entitet
+                                              (if (= "Sletting" (:endringstype endring))
+                                                (some-> (m-nats/find-first
+                                                         nats-conn bucket
+                                                         (str search-prefix (:entitet endring)))
+                                                        (assoc :gyldigTil (subs (:endringstidspunkt endring)
+                                                                                0 10)))
+                                                (get entiteter (:entitet endring))))))
+                                (filter :entitet))]
+             (swap! prosess update :lastet-ned + (count endringer))
+
+             (doseq [e endringer]
+               (when (not (and ignore (ignore (:entitet e))))
+                 (a/>! ch e)))
+
+             (if (and @running? (not ferdig?))
+               (recur (inc siste-id))
+               (do
+                 (when @running?
+                   (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
+                 (a/close! ch)))))
+         (catch Exception e
+           (swap! prosess assoc :feil e)
+           (tap> ["Henting av endringer mislyktes:" type e])
+           ((:stop @prosess)))))
+     {:chan ch
+      :stop #(do
+               (when @running?
+                 (swap! prosess assoc :nedlasting-avbrutt (java.time.Instant/now)))
+               (reset! running? false)
+               (drain! ch))})))
+
+(defn synkroniser-endring-til-nats [prosess nats-conn ch type]
+  (swap! prosess assoc :synkronisert-til-nats 0)
+  (a/go
+    (let [last-msg (atom nil)
+          {:keys [bucket subject-fn]} (api-er type)]
+      (try
+        (loop []
+          (if-let [msg (a/<! ch)]
+            (do
+              (reset! last-msg msg)
+              (stream/publish nats-conn
+                {:nats.message/subject (str "endringer." bucket "." (:id msg))
+                 :nats.message/data (-> (update msg :entitet subject-fn)
+                                        charred/write-json-str)})
+              (as-> (:entitet msg) msg
+                (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg)))
+              (swap! prosess update :synkronisert-til-nats inc)
+              (recur))
+            (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
+        (catch Exception e
+          (tap> ["Klarte ikke å skrive endring av" (:id @last-msg) "av" type "til NATS" bucket ":" e])
+          (swap! prosess assoc
+                 :synkronisering-avbrutt (java.time.Instant/now)
+                 :feil e)
+          ((:stop @prosess)))))))
+
+(defn ^{:indent 3} hent-endringer-og-synkroniser
+  ([config nats-conn type start-id {:keys [xf]}]
+   (let [prosess (atom {:startet (java.time.Instant/now)
+                        :lastet-ned 0
+                        :data []})
+         {:keys [chan stop]} (hent-endringer prosess config nats-conn type start-id)
+         ch (a/map (fn [endring]
+                     (try
+                       (let [endring (cond-> endring xf (update :entitet xf))]
+                         (swap! prosess update :data conj (:entitet endring))
+                         endring)
+                       (catch Exception e
+                         (tap> ["Mapping av endring" (:id endring) "av" type "mislyktes:" e])
+                         ((:stop @prosess))
+                         (swap! prosess assoc
+                                :synkronisering-avbrutt (java.time.Instant/now)
+                                :feil e))))
+                   [chan] 2000)
+         synk-ch (synkroniser-endring-til-nats prosess nats-conn ch type)]
+     (tap> ["Synkroniserer endringer av" (str/lower-case type) "fra" start-id])
+     (swap! prosess assoc :stop
+            (fn []
+              (swap! prosess assoc :stop (constantly nil))
+              (tap> ["Draining all chans for changes of" type])
+              (stop)
+              (tap> "Drain mapping chan")
+              (drain! ch)
+              (tap> "Draining syncing chan")
+              (drain! synk-ch)))
+     prosess)))
 
 (defn berik-postnummer
   ([postnummer->bruksområder]
@@ -263,8 +373,51 @@
        (assoc :bruksområder (postnummer->bruksområder (:postnummer postnummerområde)))
        (dissoc :xsi-type))))
 
+(defn hent-alle-endringer [config nats-conn siste-endring-id
+                           {:keys [berik-postnummer] :as prosess}]
+  (let [synkroniser-til-id (matrikkel-ws/hent-siste-endring-id config)
+        fylke-endringer (hent-endringer-og-synkroniser config nats-conn "Fylke" siste-endring-id {})
+        kommune-endringer (hent-endringer-og-synkroniser config nats-conn "Kommune" siste-endring-id {})
+        postnummer-endringer (hent-endringer-og-synkroniser config nats-conn "Postnummeromrade" siste-endring-id {:xf berik-postnummer})
+        vei-endringer (hent-endringer-og-synkroniser config nats-conn "Veg" siste-endring-id {})
+        krets->postnummer (future (->> (vent-på-synkronisering postnummer-endringer)
+                                       (map (juxt :id :postnummer))
+                                       (into @(:krets->postnummer prosess))))
+        vei->kommune (future (->> (vent-på-synkronisering vei-endringer)
+                                  (map (juxt :id :kommune))
+                                  (into @(:vei->kommune prosess))))
+        veiadresse-endringer (hent-endringer-og-synkroniser config nats-conn "Vegadresse" siste-endring-id
+                                                            {:xf (berik-veiadresser krets->postnummer vei->kommune)})
+        jobber [fylke-endringer kommune-endringer postnummer-endringer vei-endringer veiadresse-endringer]
+        stop #(doseq [j jobber]
+                ((:stop @j))
+                (remove-watch j ::synkroniseringsfeil))]
+
+    (doseq [jobb jobber]
+      (add-watch jobb ::synkroniseringsfeil
+                 (fn [_ _ _ jobb]
+                   (when-let [feil (:feil jobb)]
+                     (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
+                     (stop))))
+      (add-watch jobb ::endringer-ferdig
+                 (fn [_ ref _ jobb]
+                   (when (avsluttet? jobb)
+                     (remove-watch ref ::endringer-ferdig))
+                   (when (every? (comp avsluttet? deref) jobber)
+                     (kv/put nats-conn :madraas/siste-endring-id synkroniser-til-id)))))
+    (-> prosess
+        (assoc :fylke-endringer fylke-endringer
+               :kommune-endringer kommune-endringer
+               :postnummer-endringer postnummer-endringer
+               :vei-endringer vei-endringer
+               :veiadresse-endringer veiadresse-endringer)
+        (update :stop (fn [old-stop]
+                        (fn [] (old-stop) (stop)))))
+    ))
+
 (defn synkroniser [config nats-conn]
-  (let [fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
+  (let [siste-endring-id (siste-endring-id config nats-conn)
+        fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
         kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
         berik-postnummer (berik-postnummer (postnummer/last-ned-postnummere config))
         postnummer-jobb (last-ned-og-synkroniser config nats-conn "Postnummeromrade"
@@ -282,23 +435,25 @@
         jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
         stop #(doseq [j jobber]
                 ((:stop @j))
-                (remove-watch j ::synkroniseringsfeil))]
+                (remove-watch j ::synkroniseringsfeil))
+        prosess {:fylke-jobb fylke-jobb
+                 :kommune-jobb kommune-jobb
+                 :postnummer-jobb postnummer-jobb
+                 :vei-jobb vei-jobb
+                 :veiadresse-jobb veiadresse-jobb
+                 :berik-postnummer berik-postnummer
+                 :krets->postnummer krets->postnummer
+                 :vei->kommune vei->kommune
+                 :stop stop}]
 
-    (doseq [jobb [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]]
+    (doseq [jobb jobber]
       (add-watch jobb ::synkroniseringsfeil
                  (fn [_ _ _ jobb]
                    (when-let [feil (:feil jobb)]
                      (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
                      (stop)))))
 
-    {:fylke-jobb fylke-jobb
-     :kommune-jobb kommune-jobb
-     :postnummer-jobb postnummer-jobb
-     :vei-jobb vei-jobb
-     :veiadresse-jobb veiadresse-jobb
-     :krets->postnummer krets->postnummer
-     :vei->kommune vei->kommune
-     :stop stop}))
+    (hent-alle-endringer config nats-conn siste-endring-id prosess)))
 
 (defn ^:export run [opts]
   (assert (:config-file opts))
