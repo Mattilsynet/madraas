@@ -240,11 +240,13 @@
 
 (defn berik-veiadresser [krets->postnummer vei->kommune]
   (fn [adresse]
-    (let [postnummer (->> (:kretser adresse)
-                          (map @krets->postnummer)
-                          (filter some?)
-                          first)
-          kommune (-> adresse :vei (@vei->kommune))]
+    (let [postnummer (or (:postnummer adresse)
+                         (->> (:kretser adresse)
+                              (map @krets->postnummer)
+                              (filter some?)
+                              first))
+          kommune (or (:kommune adresse)
+                      (-> adresse :vei (@vei->kommune)))]
       (-> adresse
           (assoc :postnummer postnummer
                  :kommune kommune)
