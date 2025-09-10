@@ -134,7 +134,7 @@
            (swap! prosess assoc :start-id start)
            (let [ignore (get-in api-er [type :ignore])
                  entiteter (cond->> (->> (matrikkel-ws/last-ned config type start)
-                                         (map (get-in api-er [type :xf]))
+                                         (mapv (get-in api-er [type :xf]))
                                          (sort-by :id))
                              ignore (remove ignore))]
              (swap! prosess update :lastet-ned + (count entiteter))
@@ -273,7 +273,7 @@
            (let [{:keys [xf ignore endringstype]} (api-er type)
                  {:keys [endringer entiteter ferdig? siste-id]}
                  (matrikkel-ws/hent-endringer config (or endringstype type) start)
-                 entiteter (cond->> (map xf entiteter)
+                 entiteter (cond->> (mapv xf entiteter)
                              ignore (remove ignore)
                              :always (reduce #(assoc %1 (:id %2) %2) {}))
                  endringer (->> endringer
