@@ -265,7 +265,8 @@
                     ::adresse/bokstav :bokstav
                     ::adresse/vegId :vei
                     ::adresse/representasjonspunkt :posisjon
-                    ::adresse/kretsIds :kretser}
+                    ::adresse/kretsIds :kretser
+                    ::adresse/adressetilleggsnavn :tilleggsnavn}
                    {::dom/id pakk-ut-id
                     ::adresse/vegId pakk-ut-id
                     ::adresse/representasjonspunkt pakk-ut-representasjonspunkt

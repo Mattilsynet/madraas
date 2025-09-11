@@ -208,6 +208,7 @@
                                         [::dom/value "123456789"]]
                                        [::adresse/nummer "3"]
                                        [::adresse/bokstav "A"]
+                                       [::adresse/adressetilleggsnavn "Staden"]
                                        [::adresse/representasjonspunkt
                                         [::geometri/koordinatsystemKodeId
                                          [::dom/value "10"]]
@@ -218,8 +219,9 @@
             :versjon "42"
             :nummer "3"
             :bokstav "A"
+            :tilleggsnavn "Staden"
             :vei 123456789}
-           (select-keys adresse [:id :versjon :nummer :vei :bokstav])))
+           (select-keys adresse [:id :versjon :nummer :vei :bokstav :tilleggsnavn])))
 
     (is (= "25832" (get-in adresse [:posisjon :opprinneligKoordinatsystem])))
 
