@@ -405,7 +405,7 @@
                  (fn [_ ref _ jobb]
                    (when (avsluttet? jobb)
                      (remove-watch ref ::endringer-ferdig))
-                   (when (every? (comp seq :synkronisering-ferdig deref) jobber)
+                   (when (every? (comp :synkronisering-ferdig deref) jobber)
                      (kv/put nats-conn :madraas/siste-endring-id synkroniser-til-id)))))
     (-> prosess
         (assoc :fylke-endringer fylke-endringer
