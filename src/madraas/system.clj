@@ -227,14 +227,22 @@
               (drain! synk-ch)))
      prosess)))
 
+(defn add-watch-and-touch
+  "Legger til overvåkning av et atom og dytter borti det
+  i tilfelle den endringen vi ser etter allerede har skjedd."
+  [ref id fn]
+  (add-watch ref id fn)
+  (swap! ref identity))
+
 (defn vent-på-synkronisering [prosess]
   (let [ch (a/chan 1)]
-    (add-watch prosess ::synkronisering
+    (add-watch-and-touch
+     prosess ::synkronisering
      (fn [_ _ _ proc]
        (when (avsluttet? proc)
          (remove-watch prosess ::synkronisering)
          (when (:synkronisering-ferdig proc)
-           (a/>!! ch (:data proc)))
+           (a/put! ch (:data proc)))
          (a/close! ch))))
     (a/<!! ch)))
 
@@ -402,17 +410,17 @@
                 (remove-watch j ::synkroniseringsfeil))]
 
     (doseq [jobb jobber]
-      (add-watch jobb ::synkroniseringsfeil
-                 (fn [_ _ _ jobb]
-                   (when-let [feil (:feil jobb)]
-                     (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
-                     (stop))))
-      (add-watch jobb ::endringer-ferdig
-                 (fn [_ ref _ jobb]
-                   (when (avsluttet? jobb)
-                     (remove-watch ref ::endringer-ferdig))
-                   (when (every? (comp :synkronisering-ferdig deref) jobber)
-                     (kv/put nats-conn :madraas/siste-endring-id synkroniser-til-id)))))
+      (add-watch-and-touch jobb ::synkroniseringsfeil
+                           (fn [_ _ _ jobb]
+                             (when-let [feil (:feil jobb)]
+                               (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
+                               (stop))))
+      (add-watch-and-touch jobb ::endringer-ferdig
+                           (fn [_ ref _ jobb]
+                             (when (avsluttet? jobb)
+                               (remove-watch ref ::endringer-ferdig))
+                             (when (every? (comp :synkronisering-ferdig deref) jobber)
+                               (kv/put nats-conn :madraas/siste-endring-id synkroniser-til-id)))))
     (-> prosess
         (assoc :fylke-endringer fylke-endringer
                :kommune-endringer kommune-endringer
@@ -461,11 +469,12 @@
                  :stop stop}]
 
     (doseq [jobb jobber]
-      (add-watch jobb ::synkroniseringsfeil
-                 (fn [_ _ _ jobb]
-                   (when-let [feil (:feil jobb)]
-                     (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
-                     (stop)))))
+      (add-watch-and-touch
+       jobb ::synkroniseringsfeil
+       (fn [_ _ _ jobb]
+         (when-let [feil (:feil jobb)]
+           (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
+           (stop)))))
 
     (hent-alle-endringer config nats-conn siste-endring-id prosess)))
 
@@ -486,35 +495,34 @@
                                            (slurp "./resources/nats.edn")))
         synk (synkroniser config nats-conn)]
     (doseq [[jobb type] jobber]
-      (add-watch (jobb synk) ::fremdrift
-                 (fn [_ ref old-status status]
-                   (when (avsluttet? status)
-                     (remove-watch ref ::fremdrift))
+      (add-watch-and-touch
+       (jobb synk) ::fremdrift
+       (fn [_ ref old-status status]
+         (when (avsluttet? status)
+           (remove-watch ref ::fremdrift))
 
-                   (when (every? (comp avsluttet? deref synk) (keys jobber))
-                     (future
-                       (Thread/sleep 1000)
-                       (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0))))
+         (when (every? (comp avsluttet? deref synk) (keys jobber))
+           (future
+             (Thread/sleep 1000)
+             (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0))))
 
-                   (cond (:feil status)
-                         (tap> ["Synkronisering av" type "mislyktes"])
+         (cond (:feil status)
+               (tap> ["Synkronisering av" type "mislyktes"])
 
-                         (:nedlasting-avbrutt status)
-                         (tap> ["Nedlasting avbrutt etter synkronisering av"
-                                (:synkronisert-til-nats status)
-                                type "fullført"])
+               (:nedlasting-avbrutt status)
+               (tap> ["Nedlasting avbrutt etter synkronisering av"
+                      (:synkronisert-til-nats status)
+                      type "fullført"])
 
-                         (:synkronisering-ferdig status)
-                         (tap> ["Synkronisering av" (:synkronisert-til-nats status)
-                                type "fullført"])
+               (:synkronisering-ferdig status)
+               (tap> ["Synkronisering av" (:synkronisert-til-nats status)
+                      type "fullført"])
 
-                         (and (= 0 (mod (:synkronisert-til-nats status) 10000))
-                              (not= (:synkronisert-til-nats status)
-                                    (:synkronisert-til-nats old-status)))
-                         (tap> [(:synkronisert-til-nats status)
-                                type "synkronisert til NATS"]))))
-      ;; En liten ping til alle watches, sånn at umiddelbart ferdige prosesser ikke henger systemet
-      (swap! (jobb synk) identity))))
+               (and (= 0 (mod (:synkronisert-til-nats status) 10000))
+                    (not= (:synkronisert-til-nats status)
+                          (:synkronisert-til-nats old-status)))
+               (tap> [(:synkronisert-til-nats status)
+                      type "synkronisert til NATS"])))))))
 
 (comment
 
