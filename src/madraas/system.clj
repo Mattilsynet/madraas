@@ -228,7 +228,7 @@
      prosess)))
 
 (defn vent-på-synkronisering [prosess]
-  (let [ch (a/chan 2000)]
+  (let [ch (a/chan 1)]
     (add-watch prosess ::synkronisering
      (fn [_ _ _ proc]
        (when (avsluttet? proc)
