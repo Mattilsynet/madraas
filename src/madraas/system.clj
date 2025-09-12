@@ -234,7 +234,7 @@
        (when (avsluttet? proc)
          (remove-watch prosess ::synkronisering)
          (when (:synkronisering-ferdig proc)
-           (a/put! ch (:data proc)))
+           (a/>!! ch (:data proc)))
          (a/close! ch))))
     (a/<!! ch)))
 
@@ -382,12 +382,18 @@
         kommune-endringer (hent-endringer-og-synkroniser config nats-conn "Kommune" siste-endring-id {})
         postnummer-endringer (hent-endringer-og-synkroniser config nats-conn "Postnummeromrade" siste-endring-id {:xf berik-postnummer})
         vei-endringer (hent-endringer-og-synkroniser config nats-conn "Veg" siste-endring-id {})
-        krets->postnummer (future (->> (vent-på-synkronisering postnummer-endringer)
-                                       (map (juxt :id :postnummer))
-                                       (into @(:krets->postnummer prosess))))
-        vei->kommune (future (->> (vent-på-synkronisering vei-endringer)
-                                  (map (juxt :id :kommune))
-                                  (into @(:vei->kommune prosess))))
+        krets->postnummer (future
+                            (let [res (->> (vent-på-synkronisering postnummer-endringer)
+                                           (map (juxt :id :postnummer))
+                                           (into @(:krets->postnummer prosess)))]
+                              (tap> "Postnummermapping oppdatert")
+                              res))
+        vei->kommune (future
+                       (let [res (->> (vent-på-synkronisering vei-endringer)
+                                      (map (juxt :id :kommune))
+                                      (into @(:vei->kommune prosess)))]
+                         (tap> "Kommunemapping oppdatert")
+                         res))
         veiadresse-endringer (hent-endringer-og-synkroniser config nats-conn "Vegadresse" siste-endring-id
                                                             {:xf (berik-veiadresser krets->postnummer vei->kommune)})
         jobber [fylke-endringer kommune-endringer postnummer-endringer vei-endringer veiadresse-endringer]
@@ -426,12 +432,18 @@
                           {:xf berik-postnummer
                            :synkron? true})
         vei-jobb (last-ned-og-synkroniser config nats-conn "Veg" {:synkron? true})
-        krets->postnummer (future (->> (vent-på-synkronisering postnummer-jobb)
-                                       (map (juxt :id :postnummer))
-                                       (into {})))
-        vei->kommune (future (->> (vent-på-synkronisering vei-jobb)
-                                  (map (juxt :id :kommune))
-                                  (into {})))
+        krets->postnummer (future
+                            (let [res (->> (vent-på-synkronisering postnummer-jobb)
+                                           (map (juxt :id :postnummer))
+                                           (into {}))]
+                              (tap> "Postnummermapping opprettet")
+                              res))
+        vei->kommune (future
+                       (let [res (->> (vent-på-synkronisering vei-jobb)
+                                      (map (juxt :id :kommune))
+                                      (into {}))]
+                         (tap> "Kommunemapping opprettet")
+                         res))
         veiadresse-jobb (last-ned-og-synkroniser config nats-conn "Vegadresse"
                           {:xf (berik-veiadresser krets->postnummer vei->kommune)})
         jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
