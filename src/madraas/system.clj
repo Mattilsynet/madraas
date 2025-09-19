@@ -348,8 +348,9 @@
               (stream/publish nats-conn
                 {:nats.message/subject (str "endringer." bucket "." (:id msg))
                  :nats.message/data (-> (assoc msg
-                                               :entitet subject
-                                               :entiet-seq-no seq-no)
+                                               :stream bucket
+                                               :subject subject
+                                               :seq-no seq-no)
                                         charred/write-json-str)})
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
