@@ -17,30 +17,39 @@
   (:import
    (java.time Duration)))
 
-(def jobber
+(def importjobber
   {:fylke-jobb "fylker"
    :kommune-jobb "kommuner"
    :postnummer-jobb "postnummere"
    :vei-jobb "veier"
-   :veiadresse-jobb "veiadresser"
-   :fylke-endringer "fylkesendringer"
+   :veiadresse-jobb "veiadresser"})
+
+(def endringsjobber
+  {:fylke-endringer "fylkesendringer"
    :kommune-endringer "kommuneendringer"
    :postnummer-endringer "postnummerendringer"
    :vei-endringer "veiendringer"
    :veiadresse-endringer "veiadresseendringer"})
 
-(def fylke->subject :nummer)
+(def jobber
+  (merge importjobber endringsjobber))
+
+(defn fylke->subject [{:keys [nummer]}]
+  (str "fylker." nummer))
+
+(defn split-kommunenummer [nummer]
+  (str (subs nummer 0 2) "." (subs nummer 2)))
 
 (defn kommune->subject [{:keys [nummer]}]
-  (str (subs nummer 0 2) "." (subs nummer 2)))
+  (str "kommuner." (split-kommunenummer nummer)))
 
 (def postnummerområde->subject :postnummer)
 
 (defn vei->subject [{:keys [kommune id]}]
-  (str (kommune->subject {:nummer kommune}) "." id))
+  (str "veier." (split-kommunenummer kommune) "." id))
 
 (defn veiadresse->subject [{:keys [kommune postnummer vei id]}]
-  (str (kommune->subject {:nummer kommune}) "." postnummer "." vei "." id))
+  (str "adresser." (split-kommunenummer kommune) "." postnummer "." vei "." id))
 
 (def api-er
   {"Vegadresse" {:xf matrikkel-ws/pakk-ut-veiadresse
@@ -176,7 +185,9 @@
           (if-let [msg (a/<! ch)]
             (do
               (reset! last-msg msg)
-              (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg))
+              (stream/publish nats-conn
+                {:nats.message/subject (subject-fn msg)
+                 :nats.message/data (charred/write-json-str msg)})
               (kv/put nats-conn "madraas" siste-synkroniserte-subject (:id msg))
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
@@ -288,9 +299,8 @@
                                 (map (fn [endring]
                                        (assoc endring :entitet
                                               (if (= "Sletting" (:endringstype endring))
-                                                (some-> (m-nats/find-first
-                                                         nats-conn bucket
-                                                         (str search-prefix (:entitet endring)))
+                                                (some-> (stream/get-last-message nats-conn bucket (str bucket "." search-prefix (:entitet endring)))
+                                                        (charred/read-json {:key-fn keyword})
                                                         (assoc :gyldigTil (subs (:endringstidspunkt endring)
                                                                                 0 10)))
                                                 (get entiteter (:entitet endring))))))
@@ -326,14 +336,20 @@
       (try
         (loop []
           (if-let [msg (a/<! ch)]
-            (do
-              (reset! last-msg msg)
+            (let [{:keys [entitet endringstype]} (reset! last-msg msg)
+                  subject (subject-fn entitet)
+                  seq-no (if (= "Nyoppretting" endringstype)
+                           (:nats.message/seq (stream/get-last-message nats-conn bucket subject))
+                           (:nats.publish-ack/seq-no
+                            (stream/publish nats-conn
+                              {:nats.message/subject subject
+                               :nats.message/data (charred/write-json-str msg)})))]
               (stream/publish nats-conn
                 {:nats.message/subject (str "endringer." bucket "." (:id msg))
-                 :nats.message/data (-> (update msg :entitet subject-fn)
+                 :nats.message/data (-> (assoc msg
+                                               :entitet subject
+                                               :entiet-seq-no seq-no)
                                         charred/write-json-str)})
-              (as-> (:entitet msg) msg
-                (kv/put nats-conn bucket (subject-fn msg) (charred/write-json-str msg)))
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
@@ -383,8 +399,7 @@
        (assoc :bruksområder (postnummer->bruksområder (:postnummer postnummerområde)))
        (dissoc :xsi-type))))
 
-(defn hent-alle-endringer [config nats-conn siste-endring-id
-                           {:keys [berik-postnummer] :as prosess}]
+(defn hent-alle-endringer [config nats-conn {:keys [berik-postnummer siste-endring-id] :as prosess}]
   (let [synkroniser-til-id (matrikkel-ws/hent-siste-endring-id config)
         fylke-endringer (hent-endringer-og-synkroniser config nats-conn "Fylke" siste-endring-id {})
         kommune-endringer (hent-endringer-og-synkroniser config nats-conn "Kommune" siste-endring-id {})
@@ -431,7 +446,7 @@
                         (fn [] (old-stop) (stop)))))
     ))
 
-(defn synkroniser [config nats-conn]
+(defn importer-nye [config nats-conn]
   (let [siste-endring-id (siste-endring-id config nats-conn)
         fylke-jobb (last-ned-og-synkroniser config nats-conn "Fylke")
         kommune-jobb (last-ned-og-synkroniser config nats-conn "Kommune")
@@ -457,16 +472,7 @@
         jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
         stop #(doseq [j jobber]
                 ((:stop @j))
-                (remove-watch j ::synkroniseringsfeil))
-        prosess {:fylke-jobb fylke-jobb
-                 :kommune-jobb kommune-jobb
-                 :postnummer-jobb postnummer-jobb
-                 :vei-jobb vei-jobb
-                 :veiadresse-jobb veiadresse-jobb
-                 :berik-postnummer berik-postnummer
-                 :krets->postnummer krets->postnummer
-                 :vei->kommune vei->kommune
-                 :stop stop}]
+                (remove-watch j ::synkroniseringsfeil))]
 
     (doseq [jobb jobber]
       (add-watch-and-touch
@@ -476,35 +482,33 @@
            (tap> (str "Avbryter grunnet feil: " (.getMessage feil)))
            (stop)))))
 
-    (hent-alle-endringer config nats-conn siste-endring-id prosess)))
+    {:siste-endring-id siste-endring-id
+     :fylke-jobb fylke-jobb
+     :kommune-jobb kommune-jobb
+     :postnummer-jobb postnummer-jobb
+     :vei-jobb vei-jobb
+     :veiadresse-jobb veiadresse-jobb
+     :berik-postnummer berik-postnummer
+     :krets->postnummer krets->postnummer
+     :vei->kommune vei->kommune
+     :stop stop}))
 
-(defn ^:export run [opts]
-  (assert (:config-file opts))
-  (add-tap #(if (string? %)
-              (println %)
-              (apply println %)))
-  (tap> "Starter synkronisering")
-  (let [config (-> (init-config {:path (:config-file opts)})
-                   (config/verify-required-together
-                    #{#{:matrikkel/url
-                        :matrikkel/username
-                        :matrikkel/password}})
-                   (config/mask-config))
-        nats-conn (init-connection config (edn/read-string
-                                           {:readers {'time/duration Duration/parse}}
-                                           (slurp "./resources/nats.edn")))
-        synk (synkroniser config nats-conn)]
-    (doseq [[jobb type] jobber]
+(defn avslutt-i-fremtiden [& [feil?]]
+  (future (Thread/sleep 1000)
+          (System/exit (if feil? 1 0))))
+
+(defn vent-på-jobber [prosess jobber ved-suksess ved-avbrudd-eller-feil]
+  (doseq [[jobb type] jobber]
       (add-watch-and-touch
-       (jobb synk) ::fremdrift
+       (jobb prosess) ::fremdrift
        (fn [_ ref old-status status]
          (when (avsluttet? status)
            (remove-watch ref ::fremdrift))
 
-         (when (every? (comp avsluttet? deref synk) (keys jobber))
-           (future
-             (Thread/sleep 1000)
-             (System/exit (if (some (comp :feil deref synk) (keys jobber)) 1 0))))
+         (when (every? (comp avsluttet? deref prosess) (keys jobber))
+           (if (every? (comp :synkronisering-ferdig deref prosess) (keys jobber))
+             (ved-suksess)
+             (ved-avbrudd-eller-feil (some (comp :feil deref prosess) (keys jobber)))))
 
          (cond (:feil status)
                (tap> ["Synkronisering av" type "mislyktes"])
@@ -522,7 +526,34 @@
                     (not= (:synkronisert-til-nats status)
                           (:synkronisert-til-nats old-status)))
                (tap> [(:synkronisert-til-nats status)
-                      type "synkronisert til NATS"])))))))
+                      type "synkronisert til NATS"]))))))
+
+(defn synkroniser [config nats-conn avslutt]
+  (let [importprosess (importer-nye config nats-conn)
+        prosess (atom importprosess)]
+    (vent-på-jobber
+     importprosess importjobber
+     #(let [endringsprosess (hent-alle-endringer config nats-conn importprosess)]
+        (reset! prosess (vent-på-jobber endringsprosess endringsjobber avslutt avslutt)))
+     avslutt)
+    prosess))
+
+(defn ^:export run [opts]
+  (assert (:config-file opts))
+  (add-tap #(if (string? %)
+              (println %)
+              (apply println %)))
+  (tap> "Starter synkronisering")
+  (let [config (-> (init-config {:path (:config-file opts)})
+                   (config/verify-required-together
+                    #{#{:matrikkel/url
+                        :matrikkel/username
+                        :matrikkel/password}})
+                   (config/mask-config))
+        nats-conn (init-connection config (edn/read-string
+                                           {:readers {'time/duration Duration/parse}}
+                                           (slurp "./resources/nats.edn")))]
+    (synkroniser config nats-conn avslutt-i-fremtiden)))
 
 (comment
 

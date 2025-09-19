@@ -1,35 +1,27 @@
 (ns madraas.nats
   (:require
    [charred.api :as charred]
-   [clojure.core.async :as a]
-   [nats.kv :as kv]))
+   [nats.consumer :as consumer]))
 
-(defn read-all [conn bucket]
-  (let [ch (a/chan 1000)
-        sub (kv/watch conn bucket
-                      {:watch #(-> %
-                                   :nats.kv.entry/value
-                                   (charred/read-json {:key-fn keyword})
-                                   (->> (a/>!! ch)))
-                       :end-of-data #(a/close! ch)}
-                      [:nats.kv.watch-option/ignore-delete])]
-    (a/<!!
-     (a/go-loop [m (a/<! ch)
-                 ms []]
-       (if m
-         (recur (a/<! ch) (conj ms m))
-         (do (.close ^java.lang.AutoCloseable sub)
-             ms))))))
+(defn read-all [conn stream-name]
+  (let [consumer-name (str "madraas-" stream-name "-reader")
+        consumer (consumer/create-consumer conn {:nats.consumer/name consumer-name
+                                                 :nats.consumer/stream-name stream-name
+                                                 :nats.consumer/ack-policy :nats.ack-policy/explicit
+                                                 :nats.consumer/deliver-policy :nats.deliver-policy/all
+                                                 :nats.consumer/durable? true})
+        subscription (consumer/subscribe conn stream-name consumer-name)
+        entities
+        (loop [entities []]
+          (if-let [msg (consumer/pull-message subscription 5000)]
+            (do (consumer/ack conn msg)
+                (recur (conj entities
+                             (-> msg
+                                 :nats.message/data
+                                 (charred/read-json {:key-fn keyword})))))
+            entities))]
+    (try (consumer/unsubscribe subscription)
+         (consumer/delete-consumer conn (:nats.consumer/id consumer))
+         (catch Exception _))
 
-(defn find-first [conn bucket subject]
-  (let [ch (a/promise-chan)
-        sub (kv/watch conn bucket subject
-                      {:watch #(-> %
-                                   :nats.kv.entry/value
-                                   (charred/read-json {:key-fn keyword})
-                                   (->> (a/>!! ch)))
-                       :end-of-data #(a/close! ch)}
-                      [:nats.kv.watch-option/ignore-delete])
-        ret (a/<!! ch)]
-    (.close ^java.lang.AutoCloseable sub)
-    ret))
+    entities))

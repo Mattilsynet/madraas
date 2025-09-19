@@ -6,30 +6,50 @@
   :nats.kv/description "Fremgang i synkroniseringen"
   :nats.kv/replicas 3}
 
- {:nats.kv/bucket-name "adresser"
-  :nats.kv/description "Adresser i Matrikkelen"
-  :nats.kv/replicas 3
-  :nats.kv/max-history-per-key 10}
+ {:nats.stream/name "adresser"
+  :nats.stream/subjects #{"adresser.>"}
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false}
 
- {:nats.kv/bucket-name "fylker"
-  :nats.kv/description "Fylker i Norge"
-  :nats.kv/replicas 3
-  :nats.kv/max-history-per-key 10}
+ {:nats.stream/name "fylker"
+  :nats.stream/subjects #{"fylker.>"}
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false}
 
- {:nats.kv/bucket-name "kommuner"
-  :nats.kv/description "Kommuner i Norge"
-  :nats.kv/replicas 3
-  :nats.kv/max-history-per-key 10}
+ {:nats.stream/name "kommuner"
+  :nats.stream/subjects #{"kommuner.>"}
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false}
 
- {:nats.kv/bucket-name "postnummere"
-  :nats.kv/description "Postnummere i Norge med bruksområder"
-  :nats.kv/replicas 3
-  :nats.kv/max-history-per-key 10}
+ {:nats.stream/name "postnummere"
+  :nats.stream/subjects #{"postnummere.>"}
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false}
 
- {:nats.kv/bucket-name "veier"
-  :nats.kv/description "Veier i Matrikkelen"
-  :nats.kv/replicas 3
-  :nats.kv/max-history-per-key 10}
+ {:nats.stream/name "veier"
+  :nats.stream/subjects #{"veier.>"}
+  :nats.stream/replicas 3
+  :nats.stream/retention-policy :nats.retention-policy/limits
+  :nats.stream/allow-direct? true
+  :nats.stream/allow-rollup? false
+  :nats.stream/deny-delete? true
+  :nats.stream/deny-purge? false}
 
  {:nats.stream/name "endringer"
   :nats.stream/subjects #{"endringer.adresser.>"
