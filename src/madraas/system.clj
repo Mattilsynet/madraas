@@ -510,7 +510,7 @@
          (when (every? (comp avsluttet? deref prosess) (keys jobber))
            (if (every? (comp :synkronisering-ferdig deref prosess) (keys jobber))
              (ved-suksess)
-             (ved-avbrudd-eller-feil (some (comp :feil deref prosess) (keys jobber)))))
+             (ved-avbrudd-eller-feil true)))
 
          (cond (:feil status)
                (tap> ["Synkronisering av" type "mislyktes"])
