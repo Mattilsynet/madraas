@@ -30,4 +30,5 @@ Prosessen:
 ** TODO Gjør HTTP-forespørsler mer robuste
 *** Prøv på nytt ved nettverksfeil
 *** Prøv på nytt ved andre feil enn 500, 401 og 403
-** TODO Legg på tracing og fjern litt logging isteden
+** TODO Legg på tracing istedenfor logging
+** DONE Bytt ut bruk av KV med publisering på en strøm
