@@ -43,7 +43,8 @@
 (defn kommune->subject [{:keys [nummer]}]
   (str "kommuner." (split-kommunenummer nummer)))
 
-(def postnummerområde->subject :postnummer)
+(defn postnummerområde->subject [{:keys [postnummer]}]
+  (str "postnummere." postnummer))
 
 (defn vei->subject [{:keys [kommune id]}]
   (str "veier." (split-kommunenummer kommune) "." id))
