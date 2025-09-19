@@ -8,9 +8,10 @@ on:
     paths-ignore:
       - '**/README.md'
       - '.lsp/**'
-  env:
-    BOT_ICON: ":wally:"
-    BOT_NAME: "Where's Wally?"
+
+env:
+  BOT_ICON: ":wally:"
+  BOT_NAME: "Where's Wally?"
 
 permissions:
   id-token: write
