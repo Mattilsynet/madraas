@@ -8,6 +8,9 @@ on:
     paths-ignore:
       - '**/README.md'
       - '.lsp/**'
+  env:
+    BOT_ICON: ":wally:"
+    BOT_NAME: "Where's Wally?"
 
 permissions:
   id-token: write
@@ -42,6 +45,8 @@ jobs:
           channel-id: C06192XRMNW
           text: ":hourglass_flowing_sand: Fram med planlaseren …"
           short-text: "Bygget til Madraas er satt i gang …"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
   build:
     runs-on: ubuntu-latest
 
@@ -58,6 +63,8 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":building_construction: Bygger docker image …"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
       - uses: actions/checkout@v3
       - name: Build docker image
         run: make docker
@@ -83,6 +90,8 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":whale: Publiserer docker image …"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
       - name: Publish docker image
         run: make publish
 
@@ -126,6 +135,8 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":safety_vest: Kjører tester …"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
       - name: Test
         run: make test
 
@@ -157,6 +168,8 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":rock: Setter ut merkesteinen …"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
       - name: Deploying
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -186,6 +199,8 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":world_map: Landet er målt"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
 
   notify-failure:
     runs-on: ubuntu-latest
@@ -208,3 +223,5 @@ jobs:
           channel-id: C06192XRMNW
           message-id: ${{ needs.notify-start.outputs.slack-message }}
           text: ":rotating_light: Kartografen har gått seg vill!"
+          bot-icon: "{{ env.BOT_ICON }}"
+          bot-name: "{{ env.BOT_NAME }}"
