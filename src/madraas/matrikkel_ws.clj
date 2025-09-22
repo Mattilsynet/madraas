@@ -246,7 +246,9 @@
                     ::adresse/kretsnummer #(format "%04d" (parse-long %))
                     ::adresse/kretsnavn normaliser-stedsnavn
                     ::adresse/kommuneIds #(let [kommuner (xh/get-in-xml % [::kommune/item ::dom/value])]
-                                            (cond-> kommuner (string? kommuner) vector))}
+                                            (map (fn [kommunenummer]
+                                                   (format "%04d" (parse-long kommunenummer)))
+                                                 (cond-> kommuner (string? kommuner) vector)))}
                    {:include-type? true}))
 
 (defn pakk-ut-vei [xml-vei]

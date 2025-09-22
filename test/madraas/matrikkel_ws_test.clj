@@ -234,7 +234,7 @@
             :versjon "42"
             :postnummer "0987"
             :poststed "Oslo"
-            :kommuner ["5678" "8765"]
+            :kommuner ["5678" "8765" "0301"]
             :xsi-type "a:Postnummeromrade"}
 
            (matrikkel-ws/pakk-ut-postnummerområde
@@ -249,7 +249,9 @@
                                    [::kommune/item
                                     [::dom/value "5678"]]
                                    [::kommune/item
-                                    [::dom/value "8765"]]]])))))
+                                    [::dom/value "8765"]]
+                                   [::kommune/item
+                                    [::dom/value "301"]]]])))))
 
   (testing "Postnummerområdes kommuner er alltid en liste"
     (is (= ["5678"]
