@@ -15,6 +15,7 @@
    [open-telemetry.core :as otel]
    [open-telemetry.tracing :as tracing])
   (:import
+   (io.nats.client JetStreamApiException)
    (java.time Duration)))
 
 (def importjobber
@@ -43,8 +44,8 @@
 (defn kommune->subject [{:keys [nummer]}]
   (str "kommuner." (split-kommunenummer nummer)))
 
-(defn postnummerområde->subject [{:keys [postnummer]}]
-  (str "postnummere." postnummer))
+(defn postnummerområde->subject [{:keys [postnummer id]}]
+  (str "postnummere." postnummer "." id))
 
 (defn vei->subject [{:keys [kommune id]}]
   (str "veier." (split-kommunenummer kommune) "." id))
@@ -73,6 +74,7 @@
                        :endringstype "Krets"
                        :bucket "postnummere"
                        :subject-fn postnummerområde->subject
+                       :search-prefix "*."
                        :ignore #(not= "adresse:Postnummeromrade" (:xsi-type %))}})
 
 (defn select-keys-by-ns [m ns]
@@ -276,6 +278,15 @@
   (or (:nats.kv.entry/value (kv/get nats-conn :madraas/siste-endring-id))
       (matrikkel-ws/hent-siste-endring-id config)))
 
+(defn get-last-message [nats-conn bucket subject]
+  ;; Gets the last message, returning nil if not found (404)
+  (try
+    (stream/get-last-message nats-conn bucket subject)
+    (catch JetStreamApiException e
+      (when (not= (.getCode io.nats.client.api.Error/JsNoMessageFoundErr)
+                  (.getCode e))
+        (throw e)))))
+
 (defn hent-endringer
   ([config nats-conn type start-id] (hent-endringer (atom {:startet (java.time.Instant/now)
                                                            :lastet-ned 0})
@@ -300,7 +311,8 @@
                                 (map (fn [endring]
                                        (assoc endring :entitet
                                               (if (= "Sletting" (:endringstype endring))
-                                                (some-> (stream/get-last-message nats-conn bucket (str bucket "." search-prefix (:entitet endring)))
+                                                (some-> (get-last-message nats-conn bucket (str bucket "." search-prefix (:entitet endring)))
+                                                        :nats.message/data
                                                         (charred/read-json {:key-fn keyword})
                                                         (assoc :gyldigTil (subs (:endringstidspunkt endring)
                                                                                 0 10)))
