@@ -279,7 +279,9 @@
 
 (defn siste-endring-id [config nats-conn]
   (or (:nats.kv.entry/value (kv/get nats-conn :madraas/siste-endring-id))
-      (matrikkel-ws/hent-siste-endring-id config)))
+      (let [id (matrikkel-ws/hent-siste-endring-id config)]
+        (kv/put nats-conn :madraas/siste-endring-id id)
+        id)))
 
 (defn get-last-message [nats-conn bucket subject]
   ;; Gets the last message, returning nil if not found (404)
