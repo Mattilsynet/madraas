@@ -287,7 +287,7 @@
     (stream/get-last-message nats-conn bucket subject)
     (catch JetStreamApiException e
       (when (not= (.getCode io.nats.client.api.Error/JsNoMessageFoundErr)
-                  (.getCode e))
+                  (.getErrorCode e))
         (throw e)))))
 
 (defn hent-endringer
