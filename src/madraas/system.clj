@@ -85,6 +85,9 @@
 (defn avsluttet? [proc]
   (seq (select-keys proc [:feil :synkronisering-ferdig :nedlasting-avbrutt])))
 
+(defn avbrutt? [proc]
+  (seq (select-keys proc [:feil :nedlasting-avbrutt])))
+
 (defn init-connection [{:nats/keys [stream-overrides] :as config} resources]
   (let [conn (nats/connect config {:jet-stream-options (:nats/jet-stream-options config)})
         existing (stream/get-stream-names conn)]
@@ -331,8 +334,8 @@
                    (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
                  (a/close! ch)))))
          (catch Exception e
-           (swap! prosess assoc :feil e)
            (tap> ["Henting av endringer mislyktes:" type e])
+           (swap! prosess assoc :feil e)
            ((:stop @prosess)))))
      {:chan ch
       :stop #(do
@@ -368,7 +371,8 @@
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Exception e
-          (tap> ["Klarte ikke å skrive endring av" (:id @last-msg) "av" type "til NATS" bucket ":" e])
+          (tap> ["Klarte ikke å skrive endring" (:id @last-msg) "av" type
+                 "til NATS" (subject-fn (:entitet @last-msg)) ":" e])
           (swap! prosess assoc
                  :synkronisering-avbrutt (java.time.Instant/now)
                  :feil e)
@@ -433,7 +437,7 @@
                          res))
         veiadresse-endringer (hent-endringer-og-synkroniser config nats-conn "Vegadresse" siste-endring-id
                                                             {:xf (berik-veiadresser krets->postnummer vei->kommune)})
-        jobber [fylke-endringer kommune-endringer postnummer-endringer vei-endringer veiadresse-endringer]
+        jobber [veiadresse-endringer vei-endringer postnummer-endringer kommune-endringer fylke-endringer]
         stop #(doseq [j jobber]
                 ((:stop @j))
                 (remove-watch j ::synkroniseringsfeil))]
@@ -448,7 +452,8 @@
                            (fn [_ ref _ jobb]
                              (when (avsluttet? jobb)
                                (remove-watch ref ::endringer-ferdig))
-                             (when (every? (comp :synkronisering-ferdig deref) jobber)
+                             (when (and (every? (comp avsluttet? deref) jobber)
+                                        (not-any? (comp avbrutt? deref) jobber))
                                (kv/put nats-conn :madraas/siste-endring-id synkroniser-til-id)))))
     (-> prosess
         (assoc :fylke-endringer fylke-endringer
@@ -483,7 +488,7 @@
                          res))
         veiadresse-jobb (last-ned-og-synkroniser config nats-conn "Vegadresse"
                           {:xf (berik-veiadresser krets->postnummer vei->kommune)})
-        jobber [fylke-jobb kommune-jobb postnummer-jobb vei-jobb veiadresse-jobb]
+        jobber [veiadresse-jobb vei-jobb postnummer-jobb kommune-jobb fylke-jobb]
         stop #(doseq [j jobber]
                 ((:stop @j))
                 (remove-watch j ::synkroniseringsfeil))]
@@ -520,7 +525,7 @@
            (remove-watch ref ::fremdrift))
 
          (when (every? (comp avsluttet? deref prosess) (keys jobber))
-           (if (every? (comp :synkronisering-ferdig deref prosess) (keys jobber))
+           (if (not-any? (comp avbrutt? deref prosess) (keys jobber))
              (ved-suksess)
              (ved-avbrudd-eller-feil true)))
 
