@@ -107,7 +107,7 @@
 
           :else
           (throw (ex-info "Unknown NATS resource" nats-resource)))
-        (catch Exception e
+        (catch Throwable e
           (throw (ex-info "Unable to create NATS resource"
                           {:resource nats-resource
                            :nats-server (:nats.core/server-url config)}
@@ -162,7 +162,7 @@
                  (when @running?
                    (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
                  (a/close! ch)))))
-         (catch Exception e
+         (catch Throwable e
            ((:stop @prosess))
            (tap> ["Feil ved nedlasting av" type ":" e])
            (swap! prosess assoc :feil e))))
@@ -198,7 +198,7 @@
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
-        (catch Exception e
+        (catch Throwable e
           (tap> ["Klarte ikke å skrive" (:id @last-msg) "av" type "til NATS" bucket ":" e])
           ((:stop @prosess))
           (swap! prosess assoc
@@ -224,7 +224,7 @@
                          (when synkron?
                            (swap! prosess update :data conj verdi))
                          verdi)
-                       (catch Exception e
+                       (catch Throwable e
                          (tap> ["Klarte ikke å mappe" type (:id verdi) ":" e])
                          ((:stop @prosess))
                          (swap! prosess assoc
@@ -337,7 +337,7 @@
                  (when @running?
                    (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
                  (a/close! ch)))))
-         (catch Exception e
+         (catch Throwable e
            (tap> ["Henting av endringer mislyktes:" type e])
            (swap! prosess assoc :feil e)
            ((:stop @prosess)))))
@@ -374,7 +374,7 @@
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
-        (catch Exception e
+        (catch Throwable e
           (tap> ["Klarte ikke å skrive endring" (:id @last-msg) "av" type
                  "til NATS" (subject-fn (:entitet @last-msg)) ":" e])
           (swap! prosess assoc
@@ -393,7 +393,7 @@
                        (let [endring (cond-> endring xf (update :entitet xf))]
                          (swap! prosess update :data conj (:entitet endring))
                          endring)
-                       (catch Exception e
+                       (catch Throwable e
                          (tap> ["Mapping av endring" (:id endring) "av" type "mislyktes:" e])
                          ((:stop @prosess))
                          (swap! prosess assoc
