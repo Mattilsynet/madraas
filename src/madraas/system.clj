@@ -363,7 +363,7 @@
                            (:nats.publish-ack/seq-no
                             (stream/publish nats-conn
                               {:nats.message/subject subject
-                               :nats.message/data (charred/write-json-str msg)})))]
+                               :nats.message/data (charred/write-json-str entitet)})))]
               (stream/publish nats-conn
                 {:nats.message/subject (str "endringer." bucket "." (:id msg))
                  :nats.message/data (-> (assoc msg
