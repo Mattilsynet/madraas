@@ -272,8 +272,8 @@
                               first))
           kommune (or (:kommune adresse)
                       (-> adresse :vei (@vei->kommune)))]
-      (assert (:kommune adresse)
-              (str "Fant ikke kommune for adresse" (:id adresse) "i vei" (:vei adresse)))
+      (assert kommune
+              (str "Fant ikke kommune for adresse " (:id adresse) " i vei " (:vei adresse)))
       (-> adresse
           (assoc :postnummer postnummer
                  :kommune kommune)
