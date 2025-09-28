@@ -564,9 +564,9 @@
 
 (defn ^:export run [opts]
   (assert (:config-file opts))
-  (add-tap #(if (string? %)
-              (println %)
-              (apply println %)))
+  (add-tap #(if (sequential? %)
+              (apply println %)
+              (println %)))
   (tap> "Starter synkronisering")
   (let [config (-> (init-config {:path (:config-file opts)})
                    (config/verify-required-together
