@@ -370,6 +370,7 @@
                                                :stream bucket
                                                :subject subject
                                                :seq-no seq-no)
+                                        (dissoc :entitet)
                                         charred/write-json-str)})
               (swap! prosess update :synkronisert-til-nats inc)
               (recur))
