@@ -376,7 +376,8 @@
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Throwable e
           (tap> ["Klarte ikke å skrive endring" (:id @last-msg) "av" type
-                 "til NATS" (subject-fn (:entitet @last-msg)) ":" e])
+                 "til NATS" (or (get-in @last-msg [:entitet :id])
+                                (:entitet @last-msg)) ":" e])
           (swap! prosess assoc
                  :synkronisering-avbrutt (java.time.Instant/now)
                  :feil e)
