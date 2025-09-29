@@ -332,7 +332,7 @@
                  (a/>! ch e)))
 
              (if (and @running? (not ferdig?))
-               (recur (inc siste-id))
+               (recur siste-id)
                (do
                  (when @running?
                    (swap! prosess assoc :nedlasting-ferdig (java.time.Instant/now)))
