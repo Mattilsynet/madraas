@@ -420,6 +420,7 @@
    (partial berik-postnummer postnummer->bruksområder))
   ([postnummer->bruksområder postnummerområde]
    (-> postnummerområde
+       (update :kommuner #(remove #{"9999"} %))
        (assoc :bruksområder (postnummer->bruksområder (:postnummer postnummerområde)))
        (dissoc :xsi-type))))
 
