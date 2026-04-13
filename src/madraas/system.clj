@@ -358,12 +358,12 @@
           (if-let [msg (a/<! ch)]
             (let [{:keys [entitet endringstype]} (reset! last-msg msg)
                   subject (subject-fn entitet)
-                  seq-no (if (= "Nyoppretting" endringstype)
-                           (:nats.message/seq (stream/get-last-message nats-conn bucket subject))
-                           (:nats.publish-ack/seq-no
-                            (stream/publish nats-conn
-                              {:nats.message/subject subject
-                               :nats.message/data (charred/write-json-str entitet)})))]
+                  seq-no (or (when (= "Nyoppretting" endringstype)
+                               (:nats.message/seq (get-last-message nats-conn bucket subject)))
+                             (:nats.publish-ack/seq-no
+                              (stream/publish nats-conn
+                                {:nats.message/subject subject
+                                 :nats.message/data (charred/write-json-str entitet)})))]
               (stream/publish nats-conn
                 {:nats.message/subject (str "endringer." bucket "." (:id msg))
                  :nats.message/data (-> (assoc msg
