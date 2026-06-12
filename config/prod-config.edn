@@ -8,7 +8,7 @@
  ;; Matrikkelen
  :matrikkel/url "https://matrikkel.no/matrikkelapi/wsapi/v1"
  :matrikkel/username "mattilsynet_matrikkel"
- :matrikkel/password [:secret/prod "TlBZDjyh8VSnt8iU0bC0jpK1puggYn7ug/0tro8KXVSW/dEYVnfo2RlGODfs16Ouzrh1NRx2XI4UKQGqZehG+9x3NXUy+oUXBh7fRB/ysh3l2pt8LwYQeDCV+EZ15UGFnYk="]
+ :matrikkel/password [:secret/prod "TlBZDvQGmt3z7GpJ01rSB88J4ETeGtnDj6FcDQqrT/NPhxmKsPBn1YtRzy/JFY7hP1e/Uq8NBjRCT98184o+uDx3UlY4KpQTKZ1hl+I/r4s7yzzvO5TOP/Hurz95o8frvAM="]
 
  ;; Posten
  :posten/postnummer-url "https://www.bring.no/postnummerregister-ansi.txt"
