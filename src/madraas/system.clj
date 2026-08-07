@@ -358,21 +358,28 @@
           (if-let [msg (a/<! ch)]
             (let [{:keys [entitet endringstype]} (reset! last-msg msg)
                   subject (subject-fn entitet)
+                  eksisterende-melding (get-last-message nats-conn bucket subject)
                   seq-no (or (when (= "Nyoppretting" endringstype)
-                               (:nats.message/seq (get-last-message nats-conn bucket subject)))
-                             (:nats.publish-ack/seq-no
-                              (stream/publish nats-conn
-                                {:nats.message/subject subject
-                                 :nats.message/data (charred/write-json-str entitet)})))]
-              (stream/publish nats-conn
-                {:nats.message/subject (str "endringer." bucket "." (:id msg))
-                 :nats.message/data (-> (assoc msg
-                                               :stream bucket
-                                               :subject subject
-                                               :seq-no seq-no)
-                                        (dissoc :entitet)
-                                        charred/write-json-str)})
-              (swap! prosess update :synkronisert-til-nats inc)
+                               (:nats.message/seq eksisterende-melding))
+                             (when (not= (some-> eksisterende-melding
+                                                 :nats.message/data
+                                                 (charred/read-json {:key-fn keyword})
+                                                 (dissoc :versjon))
+                                         (dissoc entitet :versjon))
+                               (:nats.publish-ack/seq-no
+                                (stream/publish nats-conn
+                                                {:nats.message/subject subject
+                                                 :nats.message/data (charred/write-json-str entitet)}))))]
+              (when seq-no
+                (stream/publish nats-conn
+                                {:nats.message/subject (str "endringer." bucket "." (:id msg))
+                                 :nats.message/data (-> (assoc msg
+                                                               :stream bucket
+                                                               :subject subject
+                                                               :seq-no seq-no)
+                                                        (dissoc :entitet)
+                                                        charred/write-json-str)})
+                (swap! prosess update :synkronisert-til-nats inc))
               (recur))
             (swap! prosess assoc :synkronisering-ferdig (java.time.Instant/now))))
         (catch Throwable e
